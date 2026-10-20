@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Transaction Review</title>
+<style>
+/* ── Reset & base ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%;font-size:14px}
+body{height:100%;font-family:-apple-system,"Segoe UI",system-ui,sans-serif;background:#F7F5F0;color:#1C1C2E;line-height:1.6;overflow:hidden}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
+input,textarea,select{font-family:inherit;font-size:14px}
+:focus-visible{outline:2px solid #1A7A8A;outline-offset:2px;border-radius:4px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
+
+/* ── Layout shell ── */
+#app{display:flex;flex-direction:column;height:100vh}
+#topbar-nav{background:#0F3460;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0}
+#topbar-brand{display:flex;align-items:center;gap:10px;color:#fff}
+#topbar-brand svg{color:#4dbcc8}
+#topbar-brand .brand-name{font-weight:600;font-size:14px}
+#topbar-brand .brand-sub{color:rgba(255,255,255,.3);font-size:11px;margin-left:6px}
+#topbar-tabs{display:flex;gap:4px}
+.nav-tab{color:rgba(255,255,255,.55);font-size:13px;font-weight:500;padding:6px 12px;border-radius:8px;transition:background .15s,color .15s;position:relative;display:flex;align-items:center;gap:6px}
+.nav-tab:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-tab.active{background:rgba(255,255,255,.12);color:#fff}
+.nav-badge{background:#F5A623;color:#0F3460;font-size:10px;font-weight:700;border-radius:50%;min-width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;padding:0 3px}
+
+/* ── Main content ── */
+#main{flex:1;overflow:hidden;display:flex}
+
+/* ── Pages ── */
+.page{display:none;flex:1;overflow:hidden}
+.page.active{display:flex}
+
+/* ── Queue page ── */
+#page-queue{display:none;flex-direction:row}
+#page-queue.active{display:flex}
+#queue-panel{width:320px;flex-shrink:0;display:flex;flex-direction:column;background:#fff;border-right:1px solid #e5e7eb;overflow:hidden}
+#queue-header{padding:14px 16px 12px;border-bottom:1px solid #e5e7eb;flex-shrink:0}
+#queue-header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+#queue-title{font-size:13px;font-weight:600;color:#0F3460;display:flex;align-items:center;gap:7px}
+#queue-sort{font-size:11px;color:#6B7280;background:none;border:none;display:flex;align-items:center;gap:3px}
+#queue-sort select{font-size:11px;color:#6B7280;border:none;background:transparent;cursor:pointer}
+#queue-filters{display:flex;gap:5px;flex-wrap:wrap}
+.filter-btn{font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid #e5e7eb;color:#6B7280;background:#fff;transition:all .15s}
+.filter-btn.active{background:#0F3460;color:#fff;border-color:#0F3460}
+#queue-list{flex:1;overflow-y:auto}
+#queue-footer{padding:8px 16px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;flex-shrink:0}
+
+/* ── Transaction card ── */
+.tx-card{padding:14px 16px;border-bottom:1px solid #f3f4f6;cursor:pointer;border-left:3px solid transparent;transition:background .12s,border-color .12s}
+.tx-card:hover{background:#f9fafb}
+.tx-card.selected{background:#eef2f9;border-left-color:#0F3460}
+.tx-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.tx-card-id-row{display:flex;align-items:center;gap:6px;min-width:0}
+.tx-card-id{font-family:monospace;font-size:11px;color:#9ca3af}
+.fp-badge{font-size:9px;font-weight:600;padding:2px 5px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.fp-badge.primary{background:#fdf2ee;color:#c25526;border:1px solid #fde0cc}
+.fp-badge.border{background:#fefce8;color:#92400e;border:1px solid #fde68a}
+.tx-card-mid{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:5px}
+.tx-card-account{font-family:monospace;font-size:13px;font-weight:700;color:#0F3460;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tx-card-amount{font-family:monospace;font-size:13px;font-weight:700;color:#0F3460;flex-shrink:0;tabular-nums}
+.tx-card-meta{font-size:11px;color:#9ca3af;margin-bottom:7px}
+.tx-card-bottom{display:flex;align-items:center;justify-content:space-between}
+.tx-signals-label{font-size:11px;color:#d97706;display:flex;align-items:center;gap:4px}
+.tx-no-signals{font-size:11px;color:#9ca3af}
+
+/* ── Score pill ── */
+.score-pill{display:inline-flex;align-items:center;font-family:monospace;font-size:11px;font-weight:700;border-radius:20px;padding:2px 8px;border:1px solid}
+.score-high{background:#fef3c7;color:#78350f;border-color:#fde68a}
+.score-med{background:#fdf2ee;color:#c25526;border-color:#fde0cc}
+.score-low{background:#eaf6f8;color:#1A7A8A;border-color:#c7eaed}
+.score-none{background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb}
+
+/* ── Status badge ── */
+.status-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;border:1px solid}
+.status-badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.7}
+.st-pending{background:#fefce8;color:#92400e;border-color:#fde68a}
+.st-cleared{background:#f0fdf4;color:#166534;border-color:#bbf7d0}
+.st-escalated{background:#fdf2ee;color:#c25526;border-color:#fde0cc}
+.st-needs_info{background:#eef2f9;color:#1e4a8a;border-color:#d5e0f0}
+
+/* ── Review panel ── */
+#review-panel{flex:1;overflow-y:auto;background:#fff;display:flex;flex-direction:column}
+#review-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#9ca3af;gap:10px;background:#f9fafb}
+#review-empty .empty-icon{font-size:32px}
+#review-empty p{font-size:14px;color:#9ca3af}
+#review-empty small{font-size:12px;color:#d1d5db;text-align:center;max-width:220px}
+
+/* ── Review panel header ── */
+#rp-header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #e5e7eb;padding:16px 20px;flex-shrink:0}
+.fp-banner{display:flex;align-items:flex-start;gap:8px;background:#fdf2ee;border:1px solid #fde0cc;border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.fp-banner-title{font-size:12px;font-weight:600;color:#c25526}
+.fp-banner-body{font-size:11px;color:#9a3412;line-height:1.5;margin-top:2px}
+.rp-id-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.rp-id{font-family:monospace;font-size:11px;color:#9ca3af}
+.rp-amounts{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.rp-account{font-family:monospace;font-size:17px;font-weight:700;color:#0F3460}
+.rp-amount{font-family:monospace;font-size:20px;font-weight:700;color:#0F3460}
+.rp-meta{font-size:11px;color:#9ca3af;display:flex;flex-wrap:wrap;gap:6px}
+.rp-meta span::after{content:'·';margin-left:6px;opacity:.4}
+.rp-meta span:last-child::after{content:''}
+
+/* ── Sections ── */
+.rp-section{padding:16px 20px;border-bottom:1px solid #f3f4f6}
+.rp-section:last-child{border-bottom:none}
+.section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#9ca3af;margin-bottom:12px}
+
+/* ── Scenario note ── */
+.scenario-note{background:#eef2f9;border:1px solid #d5e0f0;border-radius:10px;padding:10px 14px;margin:12px 20px 0;display:flex;gap:8px;align-items:flex-start}
+.scenario-note-content p.title{font-size:11px;font-weight:600;color:#1e4a8a;margin-bottom:4px}
+.scenario-note-content p.body{font-size:11px;color:#2c4a7a;line-height:1.6;white-space:pre-line}
+
+/* ── Risk gauge ── */
+.gauge-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.stat-grid{flex:1;min-width:160px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f9fafb;font-size:11px}
+.stat-row:last-child{border-bottom:none}
+.stat-label{color:#6B7280}
+.stat-value{font-family:monospace;font-weight:600;color:#0F3460}
+
+/* ── Signal list ── */
+.signal-item{border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:8px}
+.signal-item:last-child{margin-bottom:0}
+.signal-toggle{width:100%;display:flex;align-items:flex-start;gap:10px;padding:10px 14px;text-align:left;background:#fff;cursor:pointer;transition:background .12s}
+.signal-toggle:hover{background:#f9fafb}
+.sev-chip{font-size:9px;font-weight:700;letter-spacing:.04em;border-radius:20px;padding:2px 7px;flex-shrink:0;margin-top:2px;border:1px solid}
+.sev-high{background:#fef3c7;color:#78350f;border-color:#fde68a}
+.sev-med{background:#fdf2ee;color:#c25526;border-color:#fde0cc}
+.sev-low{background:#eaf6f8;color:#1A7A8A;border-color:#c7eaed}
+.signal-info{flex:1;min-width:0}
+.signal-label{font-size:12px;font-weight:600;color:#0F3460;margin-bottom:2px}
+.signal-code-pts{display:flex;gap:8px;align-items:center}
+.signal-code{font-family:monospace;font-size:10px;color:#9ca3af;background:#f3f4f6;border:1px solid #e5e7eb;padding:1px 5px;border-radius:4px}
+.signal-pts{font-size:10px;color:#9ca3af}
+.signal-chevron{color:#9ca3af;font-size:14px;flex-shrink:0;transition:transform .2s;margin-top:2px}
+.signal-chevron.open{transform:rotate(180deg)}
+.signal-explain{padding:0 14px 10px;background:#f9fafb;border-top:1px solid #f3f4f6;font-size:11px;color:#4b5563;line-height:1.6}
+.no-signals{background:#eaf6f8;border:1px solid #c7eaed;border-radius:10px;padding:10px 14px;font-size:13px;color:#1A7A8A;display:flex;gap:6px;align-items:center}
+
+/* ── Peer chart ── */
+.peer-chart-desc{font-size:11px;color:#6B7280;margin-bottom:12px;line-height:1.5}
+.bar-chart{display:flex;gap:14px;align-items:flex-end;height:100px}
+.bar-col{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.bar-wrap{width:100%;display:flex;align-items:flex-end;justify-content:center;height:80px}
+.bar{border-radius:5px 5px 0 0;width:70%;min-height:4px;transition:height .6s cubic-bezier(.4,0,.2,1)}
+.bar-val{font-family:monospace;font-size:10px;font-weight:600;color:#374151}
+.bar-name{font-size:10px;color:#9ca3af;text-align:center;line-height:1.3}
+.bar-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#6B7280}
+.legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* ── Timeline ── */
+.timeline{position:relative;padding-left:28px}
+.timeline::before{content:'';position:absolute;left:10px;top:8px;bottom:0;width:1px;background:#e5e7eb}
+.tl-item{position:relative;padding-bottom:14px}
+.tl-item:last-child{padding-bottom:0}
+.tl-dot{position:absolute;left:-22px;top:6px;width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid #e5e7eb;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:11px}
+.tl-title{font-size:12px;font-weight:500;color:#0F3460}
+.tl-amount{font-family:monospace;font-size:12px;font-weight:600;color:#0F3460;margin-left:8px}
+.tl-meta{font-size:11px;color:#9ca3af;margin-top:2px}
+
+/* ── Threshold tuner ── */
+.tuner-notice{background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;display:flex;gap:8px;align-items:flex-start;margin-bottom:12px}
+.tuner-notice p{font-size:11px;color:#78350f;line-height:1.5}
+.tuner-notice strong{color:#92400e}
+.why-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.why-card{border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px}
+.why-card .why-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.why-card p{font-size:11px;color:#4b5563;line-height:1.5}
+.slider-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:12px}
+.slider-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.slider-label{font-size:12px;font-weight:600;color:#0F3460}
+.slider-label code{font-size:11px;color:#1A7A8A;background:#eaf6f8;border-radius:4px;padding:1px 5px}
+.slider-val{font-family:monospace;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px}
+.slider-default{background:#f3f4f6;color:#6B7280}
+.slider-changed{background:#eaf6f8;color:#1A7A8A}
+input[type=range]{width:100%;height:6px;border-radius:3px;accent-color:#1A7A8A;cursor:pointer;margin:8px 0}
+.slider-minmax{display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;font-family:monospace}
+.slider-suppress{color:#1A7A8A;font-weight:600}
+.tuner-result{display:flex;align-items:flex-start;gap:8px;border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.5;margin-bottom:12px}
+.tuner-result.fires{background:#fefce8;border:1px solid #fde68a;color:#78350f}
+.tuner-result.suppressed{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}
+.tradeoff-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.tradeoff-card{border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px}
+.tradeoff-card .tc-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;display:flex;align-items:center;gap:4px}
+.tradeoff-card p{font-size:11px;color:#4b5563;line-height:1.5}
+.tuner-footer{font-size:10px;color:#9ca3af;line-height:1.5}
+.reset-btn{font-size:11px;color:#6B7280;text-decoration:underline;margin-top:6px;cursor:pointer;background:none;border:none;display:block}
+
+/* ── Review form ── */
+.disclaimer-card{background:#fefce8;border:1px solid #fde68a;border-radius:10px;overflow:hidden;margin-bottom:16px}
+.disclaimer-toggle{width:100%;display:flex;align-items:flex-start;gap:10px;padding:10px 14px;text-align:left;cursor:pointer;background:transparent}
+.disclaimer-title{font-size:11px;font-weight:600;color:#78350f}
+.disclaimer-sub{font-size:10px;color:#92400e;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.disclaimer-chevron{color:#92400e;margin-top:1px;flex-shrink:0;transition:transform .2s;font-size:14px}
+.disclaimer-chevron.open{transform:rotate(180deg)}
+.disclaimer-body{padding:0 14px 12px;font-size:11px;color:#78350f;line-height:1.6;border-top:1px solid #fde68a;display:none}
+.disclaimer-body.open{display:block}
+.disclaimer-body p+p{margin-top:6px}
+.disclaimer-body strong{color:#92400e}
+
+.form-step{margin-bottom:18px}
+.form-step-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.step-num{width:20px;height:20px;border-radius:50%;background:#0F3460;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#4b5563}
+.step-req{color:#E8885A;font-weight:400;margin-left:4px;text-transform:none}
+
+/* Checklist */
+.checklist-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.checklist-desc{font-size:11px;color:#6B7280;flex:1;line-height:1.5}
+.checklist-counter{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;flex-shrink:0;margin-left:8px}
+.cc-progress{background:#f3f4f6;color:#6B7280}
+.cc-done{background:#eaf6f8;color:#1A7A8A;border:1px solid #c7eaed}
+.checklist-item{border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:5px}
+.checklist-item:last-child{margin-bottom:0}
+.checklist-row{display:flex;align-items:flex-start;gap:8px;padding:9px 12px}
+.checklist-cb{display:flex;align-items:flex-start;gap:8px;flex:1;cursor:pointer}
+.checklist-cb input[type=checkbox]{width:15px;height:15px;margin-top:2px;flex-shrink:0;cursor:pointer;accent-color:#1A7A8A}
+.checklist-qtext{font-size:12px;color:#0F3460;line-height:1.5}
+.checklist-qtext.done{text-decoration:line-through;color:#9ca3af;text-decoration-color:#c7eaed}
+.checklist-qnum{font-family:monospace;font-size:10px;color:#9ca3af;margin-right:4px}
+.hint-btn{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#9ca3af;font-size:13px;transition:background .12s;background:none;border:none;cursor:pointer;margin-top:1px}
+.hint-btn:hover,.hint-btn.open{background:#eaf6f8;color:#1A7A8A}
+.hint-text{display:none;padding:0 12px 10px;background:#f9fafb;border-top:1px solid #f3f4f6;font-size:11px;color:#4b5563;line-height:1.6}
+.hint-text.open{display:block}
+.checklist-done-msg{margin-top:8px;background:#eaf6f8;border:1px solid #c7eaed;border-radius:8px;padding:7px 12px;font-size:11px;color:#1A7A8A;display:none}
+.checklist-done-msg.visible{display:block}
+
+/* Outcome radios */
+.outcome-option{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;margin-bottom:6px;cursor:pointer;transition:background .12s,border-color .12s}
+.outcome-option:hover{background:#f9fafb}
+.outcome-option.selected{border-color:#0F3460;background:#eef2f9}
+.outcome-option input[type=radio]{margin-top:3px;flex-shrink:0;accent-color:#0F3460}
+.outcome-icon{font-size:15px;margin-top:1px;flex-shrink:0}
+.outcome-label{font-size:12px;font-weight:600;color:#0F3460}
+.outcome-desc{font-size:11px;color:#6B7280;margin-top:2px;line-height:1.4}
+
+/* Next step radios */
+.nextstep-option{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;margin-bottom:6px;cursor:pointer;transition:all .12s}
+.nextstep-option:hover{background:#f9fafb}
+.nextstep-option.selected{border-color:#1A7A8A;background:#eaf6f8}
+.nextstep-option input[type=radio]{margin-top:3px;flex-shrink:0;accent-color:#1A7A8A}
+.ns-icon{font-family:monospace;font-size:10px;font-weight:600;color:#1A7A8A;background:#eaf6f8;border-radius:4px;padding:1px 5px;margin-top:2px;flex-shrink:0}
+.ns-label{font-size:12px;font-weight:600;color:#0F3460}
+.ns-desc{font-size:11px;color:#6B7280;margin-top:2px;line-height:1.4}
+
+/* Note + name */
+.form-field{margin-bottom:14px}
+.field-label{display:block;font-size:11px;font-weight:600;color:#4b5563;margin-bottom:5px}
+.field-label .req{color:#E8885A}
+.field-label .opt{color:#9ca3af;font-weight:400}
+.form-textarea{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:12px;resize:none;color:#0F3460;background:#fff;transition:border-color .15s;line-height:1.5}
+.form-textarea:focus{border-color:#1A7A8A;outline:none;box-shadow:0 0 0 2px rgba(26,122,138,.1)}
+.form-textarea::placeholder{color:#d1d5db}
+.form-input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;font-size:12px;color:#0F3460;background:#fff;transition:border-color .15s}
+.form-input:focus{border-color:#1A7A8A;outline:none;box-shadow:0 0 0 2px rgba(26,122,138,.1)}
+.form-input::placeholder{color:#d1d5db}
+.char-count{text-align:right;font-size:10px;color:#9ca3af;margin-top:3px}
+.field-note{font-size:10px;color:#9ca3af;margin-top:2px}
+.submit-btn{width:100%;padding:10px;border-radius:10px;font-size:13px;font-weight:600;background:#0F3460;color:#fff;border:none;cursor:pointer;transition:background .15s;margin-bottom:6px}
+.submit-btn:hover:not(:disabled){background:#143870}
+.submit-btn:disabled{background:#e5e7eb;color:#9ca3af;cursor:not-allowed}
+.submit-note{font-size:10px;color:#9ca3af;text-align:center;line-height:1.5}
+
+/* Submitted view */
+.review-submitted{display:none}
+.review-submitted.visible{display:block}
+.review-form-edit{display:block}
+.review-form-edit.hidden{display:none}
+.submitted-card{border:1px solid #c7eaed;border-radius:10px;overflow:hidden}
+.submitted-header{background:#eaf6f8;padding:10px 14px;display:flex;gap:8px;align-items:flex-start;border-bottom:1px solid #c7eaed}
+.submitted-title{font-size:13px;font-weight:600;color:#1A7A8A}
+.submitted-by{font-size:11px;color:#5eabb7;margin-top:2px}
+.submitted-rows{padding:2px 0}
+.sub-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:7px 14px;border-bottom:1px solid #eaf6f8;font-size:11px}
+.sub-row:last-child{border-bottom:none}
+.sub-key{color:#5eabb7;font-weight:600;flex-shrink:0}
+.sub-val{color:#1A7A8A;text-align:right}
+.sub-note{padding:8px 14px}
+.sub-note .sk{font-size:11px;color:#5eabb7;font-weight:600;margin-bottom:3px}
+.sub-note .sv{font-size:11px;color:#1A7A8A;font-style:italic;line-height:1.5}
+.update-link{font-size:11px;color:#1A7A8A;text-decoration:underline;margin-top:8px;cursor:pointer;background:none;border:none;display:block}
+
+/* ── Account status panel ── */
+.asp-notice{background:#f3f4f6;border:1px solid #e5e7eb;border-radius:10px;padding:9px 12px;display:flex;gap:7px;align-items:flex-start;margin-bottom:10px}
+.asp-notice p{font-size:11px;color:#6B7280;line-height:1.5}
+.asp-notice strong{color:#374151}
+.asp-card{border-radius:10px;overflow:hidden;border:1px solid}
+.asp-header{padding:12px 14px;display:flex;gap:8px;align-items:flex-start}
+.asp-header-title{font-size:13px;font-weight:600;color:#0F3460}
+.asp-header-ref{font-family:monospace;font-size:10px;color:#6B7280;margin-top:2px}
+.asp-body{padding:12px 14px;background:#fff;border-top:1px solid}
+.asp-body p{font-size:12px;color:#374151;line-height:1.65}
+.asp-next{margin-top:10px;padding:9px 12px;background:#f3f4f6;border-radius:7px;font-size:11px;color:#4b5563}
+.asp-next strong{color:#0F3460}
+.asp-disclaimer{font-size:10px;color:#9ca3af;margin-top:10px;line-height:1.5;border-top:1px solid #f3f4f6;padding-top:8px}
+
+/* ── Audit trail ── */
+.audit-notice{background:#eef2f9;border:1px solid #d5e0f0;border-radius:10px;padding:9px 12px;display:flex;gap:7px;align-items:flex-start;margin-bottom:12px}
+.audit-notice p{font-size:11px;color:#2c4a7a;line-height:1.5}
+.audit-notice strong{color:#1e4a8a}
+.audit-list{position:relative;padding-left:30px}
+.audit-list::before{content:'';position:absolute;left:11px;top:8px;bottom:8px;width:1px;background:#e5e7eb}
+.audit-event{position:relative;padding-bottom:14px}
+.audit-event:last-child{padding-bottom:0}
+.ae-dot{position:absolute;left:-23px;top:6px;width:24px;height:24px;border-radius:50%;background:#fff;border:2px solid #e5e7eb;display:flex;align-items:center;justify-content:center;color:#6B7280;font-size:11px}
+.ae-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ae-kind{font-size:11px;font-weight:600;color:#0F3460}
+.ae-id{font-family:monospace;font-size:9px;color:#9ca3af;background:#f3f4f6;border:1px solid #e5e7eb;padding:1px 4px;border-radius:3px}
+.ae-time{font-family:monospace;font-size:9px;color:#9ca3af;margin-left:auto}
+.ae-desc{font-size:11px;color:#4b5563;margin-top:2px;line-height:1.5}
+.ae-detail{font-size:10px;color:#9ca3af;font-style:italic;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:360px}
+.ae-actor{font-size:10px;color:#9ca3af;margin-top:1px}
+.ae-actor span{font-weight:500;color:#6B7280}
+.audit-empty{font-size:12px;color:#9ca3af;padding:8px 0}
+.audit-footer{font-size:10px;color:#9ca3af;margin-top:10px;line-height:1.5}
+
+/* ── Summary page ── */
+#page-summary{display:none;flex:1;overflow-y:auto}
+#page-summary.active{display:block}
+.summary-inner{max-width:900px;margin:0 auto;padding:24px 20px 48px}
+.summary-title{font-size:20px;font-weight:700;color:#0F3460;margin-bottom:4px}
+.summary-sub{font-size:12px;color:#9ca3af;margin-bottom:24px}
+.summary-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.sc-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#9ca3af;margin-bottom:4px}
+.progress-nums{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:8px}
+.prog-main{font-size:22px;font-weight:700;color:#0F3460}
+.prog-main span{font-size:14px;font-weight:400;color:#9ca3af}
+.prog-pct{font-size:28px;font-weight:700;color:#1A7A8A}
+.prog-bar-wrap{height:10px;background:#f3f4f6;border-radius:5px;overflow:hidden;margin-bottom:14px}
+.prog-bar{height:100%;background:#1A7A8A;border-radius:5px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat-box{background:#f3f4f6;border-radius:10px;padding:10px;text-align:center}
+.stat-box .sv{font-size:18px;font-weight:700;color:#0F3460}
+.stat-box .sv.accent{color:#E8885A}
+.stat-box .sl{font-size:10px;color:#6B7280;margin-top:2px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.donut-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+.donut-legend{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.dl-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#4b5563}
+.dl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.outcome-bars{display:flex;flex-direction:column;gap:6px}
+.ob-row{display:flex;align-items:center;gap:8px;font-size:11px}
+.ob-label{width:160px;flex-shrink:0;color:#4b5563;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ob-bar-wrap{flex:1;height:18px;background:#f3f4f6;border-radius:4px;overflow:hidden}
+.ob-bar{height:100%;background:#1A7A8A;border-radius:4px;transition:width .5s}
+.ob-count{width:20px;text-align:right;flex-shrink:0;color:#9ca3af;font-family:monospace}
+.freq-bars{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+.freq-row{display:flex;align-items:center;gap:8px;font-size:11px}
+.freq-label{width:200px;flex-shrink:0;color:#4b5563;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.freq-bar-wrap{flex:1;height:16px;background:#f3f4f6;border-radius:4px;overflow:hidden}
+.freq-bar{height:100%;background:#0F3460;border-radius:4px;transition:width .5s}
+.freq-count{width:20px;text-align:right;flex-shrink:0;color:#9ca3af;font-family:monospace}
+
+/* FP summary */
+.fp-case{border-radius:10px;border:1px solid;padding:14px;margin-bottom:10px}
+.fp-case.primary{border-color:#fde0cc;background:#fdf2ee}
+.fp-case.border-risk{border-color:#fde68a;background:#fefce8}
+.fp-case-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.fp-case-ids{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fp-case-score{font-family:monospace;font-size:11px;color:#6B7280}
+.fp-thresh-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.fp-thresh-card{background:#fff;border:1px solid #e5e7eb;border-radius:7px;padding:9px 11px}
+.fp-thresh-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6B7280;margin-bottom:4px}
+.fp-thresh-val{font-family:monospace;font-size:11px;color:#1A7A8A}
+.fp-thresh-sub{font-size:10px;color:#9ca3af;margin-top:2px}
+.fp-thresh-body{font-size:11px;color:#4b5563;line-height:1.5}
+.summary-footer{font-size:11px;color:#9ca3af;text-align:center;margin-top:16px;line-height:1.6;padding-top:16px;border-top:1px solid #e5e7eb}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0F3460;color:#fff;display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.18);font-size:13px;font-weight:500;z-index:999;opacity:0;pointer-events:none;transition:opacity .25s}
+#toast.show{opacity:1;pointer-events:auto}
+#toast-close{color:rgba(255,255,255,.5);font-size:16px;line-height:1;cursor:pointer;margin-left:4px}
+#toast-close:hover{color:#fff}
+
+/* ── Empty queue ── */
+.queue-empty{padding:40px 20px;text-align:center;color:#9ca3af}
+.queue-empty .qe-icon{font-size:28px;margin-bottom:8px}
+.queue-empty p{font-size:13px}
+.queue-empty small{font-size:11px;color:#d1d5db}
+
+@media(max-width:640px){
+  #queue-panel{width:100%;border-right:none}
+  #review-panel{display:none}
+  #queue-panel.mobile-hidden{display:none}
+  #review-panel.mobile-show{display:flex}
+  .two-col{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .why-grid,.tradeoff-grid,.fp-thresh-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Top bar -->
+  <div id="topbar-nav">
+    <div id="topbar-brand">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span class="brand-name">Transaction Review</span>
+      <span class="brand-sub" id="brand-sub-text">Explainable · Human-reviewed</span>
+    </div>
+    <div id="topbar-tabs">
+      <button class="nav-tab active" id="tab-queue" onclick="navigate('queue')">
+        Review Queue <span class="nav-badge" id="pending-badge">14</span>
+      </button>
+      <button class="nav-tab" id="tab-summary" onclick="navigate('summary')">Summary</button>
+    </div>
+  </div>
+
+  <div id="main">
+    <!-- Queue page -->
+    <div class="page active" id="page-queue">
+      <div id="queue-panel">
+        <div id="queue-header">
+          <div id="queue-header-row">
+            <div id="queue-title">
+              Review Queue <span class="nav-badge" id="queue-pending-badge">14</span>
+            </div>
+            <div id="queue-sort">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+              <select id="sort-select" onchange="applySort(this.value)">
+                <option value="score">By score</option>
+                <option value="timestamp">By date</option>
+              </select>
+            </div>
+          </div>
+          <div id="queue-filters">
+            <button class="filter-btn active" onclick="applyFilter('all',this)">All</button>
+            <button class="filter-btn" onclick="applyFilter('pending_review',this)">Pending</button>
+            <button class="filter-btn" onclick="applyFilter('escalated',this)">Escalated</button>
+            <button class="filter-btn" onclick="applyFilter('needs_info',this)">Needs Info</button>
+            <button class="filter-btn" onclick="applyFilter('cleared',this)">Cleared</button>
+          </div>
+        </div>
+        <div id="queue-list"></div>
+        <div id="queue-footer">25 transactions total</div>
+      </div>
+
+      <div id="review-panel">
+        <div id="review-empty">
+          <div class="empty-icon">👈</div>
+          <p>Select a transaction</p>
+          <small>Choose a transaction from the queue to view its details and record your review.</small>
+        </div>
+        <div id="rp-content" style="display:none;flex-direction:column;flex:1"></div>
+      </div>
+    </div>
+
+    <!-- Summary page -->
+    <div class="page" id="page-summary">
+      <div class="summary-inner" id="summary-inner"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast">
+  <svg width="16" height="16" fill="none" stroke="#3A9E76" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toast-msg"></span>
+  <span id="toast-close" onclick="hideToast()">✕</span>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// TRANSACTION DATA
+// ─────────────────────────────────────────────────────────────────────────────
+const TRANSACTIONS = [
+  {id:'TX-001',account:'ACCT-0042',amount:7140000,currency:'INR',category:'Wire Transfer',channel:'Wire',region:'Eastern Europe',ts:'May 31, 2025 · 14:22',score:88,status:'pending_review',signals:[
+    {code:'DORMANT_REACTIVATION',label:'Previously inactive account',sev:'medium',pts:20,explain:"This account shows no recorded activity for 120 days before this transaction. A long dormancy followed by sudden activity is a pattern that sometimes warrants a closer look — but can also reflect normal life events such as returning from an extended trip."},
+    {code:'AMOUNT_SPIKE',label:'Unusually large transaction amount',sev:'high',pts:30,explain:"₹71,40,000 is approximately 27× the account's rolling 30-day average of ₹2,68,800. An unexpected jump in transaction size can indicate changed circumstances — or may simply reflect an infrequent large purchase."},
+    {code:'CROSS_BORDER_WIRE',label:'Cross-region wire transfer',sev:'medium',pts:20,explain:"A wire of ₹71,40,000 was directed to Eastern Europe, outside typical domestic activity. International wires above ₹8,40,000 receive additional scrutiny as standard due-diligence practice."},
+    {code:'ROUND_AMOUNT',label:'Exact round-number amount',sev:'low',pts:10,explain:"₹71,40,000 is an exact round figure with no paise. Round numbers are a minor pattern sometimes seen in manually directed transfers. By itself this is a weak signal — most relevant when combined with other indicators."}
+  ],rollingAvg:268800,daysSince:120,activity24h:1,peerAvg:378000,
+  timeline:[{d:-120,amt:100800,desc:'Monthly subscription charge',cat:'Utility'},{d:-180,amt:210000,desc:'Retail purchase',cat:'Retail'},{d:-200,amt:67200,desc:'ATM withdrawal',cat:'ATM'},{d:-220,amt:260400,desc:'Payroll deposit',cat:'Payroll'},{d:-240,amt:79800,desc:'Utility bill',cat:'Utility'}],
+  note:"An account inactive for four months suddenly initiates a large international wire. Multiple signals fire together. Reviewers should consider whether the account holder can be contacted for context."},
+
+  {id:'TX-002',account:'ACCT-0117',amount:789600,currency:'INR',category:'Wire Transfer',channel:'Online',region:'Domestic',ts:'Jun 1, 2025 · 16:45',score:58,status:'pending_review',signals:[
+    {code:'STRUCTURING_PATTERN',label:'Possible structuring pattern',sev:'high',pts:30,explain:"4 transactions in the preceding 24-hour window total ₹29,90,400 in aggregate, while each individual transaction remained below the ₹8,40,000 reporting threshold. This pattern — sometimes called 'structuring' — can occur inadvertently or may warrant further enquiry."},
+    {code:'HIGH_VELOCITY',label:'High transaction frequency',sev:'high',pts:25,explain:"7 transactions were recorded on this account in the preceding 24-hour window — above the threshold of 5. Rapid repeated activity can sometimes indicate account takeover or coordinated movement, though it can also reflect legitimate bulk payments."}
+  ],rollingAvg:403200,daysSince:3,activity24h:7,peerAvg:436800,
+  timeline:[{d:-1,amt:764400,desc:'Wire transfer #3',cat:'Wire'},{d:-1,amt:747600,desc:'Wire transfer #2',cat:'Wire'},{d:-1,amt:688800,desc:'Wire transfer #1',cat:'Wire'},{d:-5,amt:352800,desc:'Retail purchase',cat:'Retail'},{d:-12,amt:319200,desc:'Payroll receipt',cat:'Payroll'}],
+  note:"Four wire transfers of ₹7,89,600 / ₹7,47,600 / ₹7,64,400 / ₹6,88,800 submitted within 24 hours, each below the ₹8,40,000 reporting threshold, totalling ₹29,90,400. Can occur inadvertently or may warrant further enquiry."},
+
+  {id:'TX-003',account:'ACCT-0285',amount:3528000,currency:'INR',category:'Wire Transfer',channel:'Wire',region:'Southeast Asia',ts:'May 30, 2025 · 03:15',score:66,status:'pending_review',signals:[
+    {code:'RAPID_FUND_MOVEMENT',label:'Rapid inbound-then-outbound movement',sev:'high',pts:28,explain:"Funds totalling ₹35,28,000 appear to have been received and then moved out again within approximately 1 hour. Rapid pass-through movement can be consistent with layering patterns — but also with legitimate treasury or payroll operations."},
+    {code:'ROUND_AMOUNT',label:'Exact round-number amount',sev:'low',pts:10,explain:"₹35,28,000 is an exact round figure. Round numbers are a minor pattern sometimes seen in manually directed transfers. Most relevant when combined with other indicators."},
+    {code:'CROSS_BORDER_WIRE',label:'Cross-region wire transfer',sev:'medium',pts:20,explain:"A wire of ₹35,28,000 directed to Southeast Asia, outside typical domestic activity. International wires above ₹8,40,000 receive additional scrutiny as standard due-diligence practice."}
+  ],rollingAvg:235200,daysSince:7,activity24h:2,peerAvg:252000,
+  timeline:[{d:-1,amt:3528000,desc:'Inbound wire received',cat:'Wire'},{d:-8,amt:92400,desc:'Retail purchase',cat:'Retail'},{d:-15,amt:235200,desc:'Loan payment',cat:'Loan'},{d:-22,amt:79800,desc:'ATM withdrawal',cat:'ATM'},{d:-30,amt:201600,desc:'Payroll receipt',cat:'Payroll'}],
+  note:"A ₹35,28,000 inbound wire was received and a ₹35,28,000 outbound wire to Southeast Asia was initiated within ~1 hour. Rapid pass-through can occur in legitimate treasury operations but is also a pattern associated with layering typologies."},
+
+  {id:'TX-004',account:'ACCT-0331',amount:1192800,currency:'INR',category:'Retail Purchase',channel:'Online',region:'Domestic',ts:'May 29, 2025 · 22:50',score:58,status:'pending_review',signals:[
+    {code:'HIGH_VELOCITY',label:'High transaction frequency',sev:'high',pts:25,explain:"7 transactions were recorded on this account in the preceding 24-hour window — above the threshold of 5. High velocity can indicate account takeover but is also consistent with legitimate e-commerce or business activity."},
+    {code:'AMOUNT_SPIKE',label:'Unusually large transaction amount',sev:'high',pts:30,explain:"₹11,92,800 is approximately 7× the account's rolling 30-day average of ₹1,76,400. An unexpected jump can indicate changed circumstances — or may simply reflect an infrequent large purchase."}
+  ],rollingAvg:176400,daysSince:1,activity24h:7,peerAvg:294000,
+  timeline:[{d:-1,amt:176400,desc:'Online purchase',cat:'Retail'},{d:-1,amt:151200,desc:'Online purchase',cat:'Retail'},{d:-1,amt:82320,desc:'Online purchase',cat:'Retail'},{d:-1,amt:285600,desc:'Online purchase',cat:'Retail'},{d:-2,amt:201600,desc:'Payroll receipt',cat:'Payroll'}],
+  note:"Seven transactions processed within 24 hours, with the largest at ₹11,92,800 — well above the account's typical range. High velocity can indicate account takeover but is also consistent with legitimate e-commerce or business activity."},
+
+  {id:'TX-005',account:'ACCT-0558',amount:403200,currency:'INR',category:'Gift Card Purchase',channel:'Branch',region:'Domestic',ts:'May 28, 2025 · 11:30',score:29,status:'pending_review',signals:[
+    {code:'LARGE_CASH_EQUIVALENT',label:'Large cash-equivalent purchase',sev:'medium',pts:18,explain:"A purchase of ₹4,03,200 in gift cards or prepaid instruments exceeds the ₹1,68,000 monitoring threshold. Cash-equivalent instruments purchased in bulk can be difficult to trace; however, legitimate uses — such as corporate gifting — are also common."},
+    {code:'NEW_MERCHANT_CATEGORY',label:'New merchant category for this account',sev:'low',pts:8,explain:"This is the first recorded transaction in the 'Gift Card' category for this account. New spending categories occasionally indicate account misuse but more often reflect legitimate new purchases."}
+  ],rollingAvg:159600,daysSince:4,activity24h:1,peerAvg:184800,
+  timeline:[{d:-4,amt:126000,desc:'Grocery store',cat:'Food'},{d:-7,amt:79800,desc:'Pharmacy',cat:'Healthcare'},{d:-10,amt:201600,desc:'Payroll receipt',cat:'Payroll'},{d:-14,amt:67200,desc:'Utility bill',cat:'Utility'},{d:-21,amt:100800,desc:'Retail purchase',cat:'Retail'}],
+  note:"A branch purchase of ₹4,03,200 in gift cards — the first time this category appears for this account. Large gift-card purchases appear in fraud typologies but are also common in legitimate corporate gifting programmes."},
+
+  {id:'TX-006',account:'ACCT-0194',amount:2100000,currency:'INR',category:'Wire Transfer',channel:'Wire',region:'West Africa',ts:'May 27, 2025 · 02:45',score:46,status:'pending_review',signals:[
+    {code:'CROSS_BORDER_WIRE',label:'Cross-region wire transfer',sev:'medium',pts:20,explain:"A wire of ₹21,00,000 was directed to a counterparty in West Africa, outside the account's typical domestic activity. International wires above ₹8,40,000 receive additional scrutiny as standard due-diligence practice."},
+    {code:'ROUND_AMOUNT',label:'Exact round-number amount',sev:'low',pts:10,explain:"₹21,00,000 is an exact round figure. Round numbers are a minor pattern sometimes seen in manually directed transfers. By itself this is a weak signal."},
+    {code:'UNUSUAL_HOUR',label:'Transaction outside business hours',sev:'low',pts:8,explain:"This transaction was initiated at 02:00 local time, outside the standard business-hours window (06:00–22:00). Off-hours activity is a low-weight signal on its own; digital banking makes late-night transactions common."}
+  ],rollingAvg:319200,daysSince:12,activity24h:2,peerAvg:336000,
+  timeline:[{d:-12,amt:268800,desc:'Retail purchase',cat:'Retail'},{d:-15,amt:75600,desc:'Utility bill',cat:'Utility'},{d:-20,amt:235200,desc:'Payroll receipt',cat:'Payroll'},{d:-25,amt:92400,desc:'Food & beverage',cat:'Food'},{d:-30,amt:58800,desc:'ATM withdrawal',cat:'ATM'}],
+  note:"A ₹21,00,000 wire to West Africa initiated at 2:45 AM. Three low-to-medium signals fire together. Off-hours wires are worth reviewing though digital banking makes them more common than they once were."},
+
+  {id:'TX-007',account:'ACCT-0076',amount:3225600,currency:'INR',category:'Investment',channel:'Online',region:'Domestic',ts:'May 26, 2025 · 13:10',score:30,status:'pending_review',signals:[
+    {code:'AMOUNT_SPIKE',label:'Unusually large transaction amount',sev:'high',pts:30,explain:"₹32,25,600 is approximately 8× the account's rolling 30-day average of ₹4,03,200. An unexpected jump in transaction size can indicate changed circumstances — or may simply reflect a planned large investment."}
+  ],rollingAvg:403200,daysSince:3,activity24h:1,peerAvg:420000,
+  timeline:[{d:-3,amt:352800,desc:'Investment contribution',cat:'Investment'},{d:-10,amt:428400,desc:'Investment contribution',cat:'Investment'},{d:-17,amt:403200,desc:'Investment contribution',cat:'Investment'},{d:-24,amt:327600,desc:'Investment contribution',cat:'Investment'},{d:-31,amt:436800,desc:'Investment contribution',cat:'Investment'}],
+  note:"A single investment transaction of ₹32,25,600 — eight times the account's rolling average — with only one signal. Could reflect a planned large investment or inheritance; reviewer should consider context."},
+
+  {id:'TX-008',account:'ACCT-0403',amount:1260000,currency:'INR',category:'Crypto Exchange',channel:'Online',region:'Domestic',ts:'May 25, 2025 · 16:05',score:41,status:'pending_review',signals:[
+    {code:'NEW_MERCHANT_CATEGORY',label:'New merchant category for this account',sev:'low',pts:8,explain:"This is the first recorded transaction with a cryptocurrency exchange for this account. New asset-class entry occasionally indicates misuse but more often reflects a new purchase decision."},
+    {code:'AMOUNT_SPIKE',label:'Unusually large transaction amount',sev:'high',pts:30,explain:"₹12,60,000 is approximately 7× the account's rolling 30-day average of ₹1,84,800. New category combined with a spike is a moderate pattern worth reviewing."}
+  ],rollingAvg:184800,daysSince:5,activity24h:2,peerAvg:252000,
+  timeline:[{d:-5,amt:184800,desc:'Online retail',cat:'Retail'},{d:-11,amt:151200,desc:'Food & beverage',cat:'Food'},{d:-18,amt:201600,desc:'Payroll receipt',cat:'Payroll'},{d:-22,amt:75600,desc:'Utility bill',cat:'Utility'},{d:-29,amt:126000,desc:'Travel booking',cat:'Travel'}],
+  note:"First-ever transaction with a cryptocurrency exchange, at ₹12,60,000 — well above the rolling average. New asset-class entry combined with a spike is a moderate pattern worth reviewing."},
+
+  {id:'TX-009',account:'ACCT-0721',amount:5040000,currency:'INR',category:'Wire Transfer',channel:'Wire',region:'Central America',ts:'May 24, 2025 · 01:07',score:96,status:'escalated',signals:[
+    {code:'DORMANT_REACTIVATION',label:'Previously inactive account',sev:'medium',pts:20,explain:"This account shows no recorded activity for 180 days before this transaction. A six-month dormancy followed by a large international wire is one of the higher-risk patterns in this dataset."},
+    {code:'AMOUNT_SPIKE',label:'Unusually large transaction amount',sev:'high',pts:30,explain:"₹50,40,000 is approximately 11× the account's rolling 30-day average of ₹4,62,000. A dramatic spike combined with dormancy is one of the stronger compounding signals."},
+    {code:'CROSS_BORDER_WIRE',label:'Cross-region wire transfer',sev:'medium',pts:20,explain:"A wire of ₹50,40,000 directed to Central America, outside typical domestic activity. International wires above ₹8,40,000 receive additional scrutiny as standard due-diligence practice."},
+    {code:'ROUND_AMOUNT',label:'Exact round-number amount',sev:'low',pts:10,explain:"₹50,40,000 is an exact round figure. By itself a weak signal — most relevant when combined with other indicators, as it is here."},
+    {code:'UNUSUAL_HOUR',label:'Transaction outside business hours',sev:'low',pts:8,explain:"This transaction was initiated at 01:00 local time, outside the standard business-hours window. In this case it compounds with four other signals."}
+  ],rollingAvg:462000,daysSince:180,activity24h:1,peerAvg:504000,
+  timeline:[{d:-180,amt:352800,desc:'Last-known activity: retail',cat:'Retail'},{d:-200,amt:487200,desc:'Investment contribution',cat:'Investment'},{d:-220,amt:260400,desc:'Loan payment',cat:'Loan'},{d:-250,amt:243600,desc:'Utility bill',cat:'Utility'},{d:-280,amt:428400,desc:'Payroll receipt',cat:'Payroll'}],
+  note:"The highest-risk scenario: a six-month-dormant account wakes up to wire ₹50,40,000 internationally at 1 AM. All five signals fire. Multiple compounding signals drive a very high score."},
+
+  {id:'TX-010',account:'ACCT-0639',amount:1512000,currency:'INR',category:'Real Estate',channel:'Online',region:'Domestic',ts:'May 23, 2025 · 09:00',score:43,status:'cleared',isFPDemo:true,signals:[
+    {code:'AMOUNT_SPIKE',label:'Unusually large transaction amount',sev:'high',pts:30,explain:"₹15,12,000 is ~6.4× the account's rolling 30-day average of ₹2,35,200, exceeding the 5× multiplier threshold. The rule treats any large single transaction as unusual compared to recent activity — it has no memory of annual, predictable events."},
+    {code:'ROUND_AMOUNT',label:'Exact round-number amount',sev:'low',pts:10,explain:"₹15,12,000 is an exact multiple of ₹84,000 and exceeds the ₹4,20,000 minimum, triggering this low-weight signal. By itself a minor indicator."}
+  ],rollingAvg:235200,daysSince:2,activity24h:1,peerAvg:268800,
+  timeline:[{d:-2,amt:201600,desc:'Grocery store',cat:'Food'},{d:-5,amt:151200,desc:'Utility bill (electricity)',cat:'Utility'},{d:-10,amt:235200,desc:'Payroll receipt',cat:'Payroll'},{d:-14,amt:75600,desc:'Healthcare copay',cat:'Healthcare'},{d:-365,amt:1512000,desc:'Property tax payment (prior year)',cat:'Real Estate'}],
+  note:"★ PRIMARY FALSE POSITIVE ★\n\nAnnual property-tax payment to a domestic government authority. The amount (₹15,12,000) is roughly 6.4× the rolling average, crossing the AMOUNT_SPIKE threshold (5×). It is also a round number.\n\nWhy it fired: The AMOUNT_SPIKE rule has no memory of annual, predictable events.\n\nWhy it is likely legitimate: The prior-year timeline shows an identical ₹15,12,000 real-estate payment one year earlier, confirming this is a predictable annual obligation.\n\nThreshold tradeoff: Raising amountSpikeMultiplier from 5× to 7× would suppress this alert — but would also miss a genuine 6× spike elsewhere. Use the threshold tuner below to explore this tradeoff.",
+  fpAnalysis:{whyFlagged:"AMOUNT_SPIKE fired because ₹15,12,000 is ~6.4× the rolling average of ₹2,35,200, exceeding the 5× multiplier threshold. ROUND_AMOUNT also fired because ₹15,12,000 is an exact multiple of ₹84,000 and exceeds the ₹4,20,000 minimum.",whyLegitimate:"The account's own timeline shows an identical ₹15,12,000 real-estate payment one year earlier, confirming this is a predictable annual obligation. The payee is a domestic government authority.",primaryRule:'AMOUNT_SPIKE',threshKey:'amountSpikeMultiplier',curVal:5,suppressVal:7,min:2,max:15,step:0.5,tradeoff:"Raising the multiplier to 7× would prevent this alert from firing. However, a genuine anomaly at 6× the average — such as an account used to funnel an unexpected large sum — would also be missed.",benefit:"Reviewers would spend less time on predictable, well-documented large payments such as annual taxes, insurance premiums, and property deposits — freeing capacity for higher-risk cases.",live:(v,amt,avg)=>avg>0&&amt>=v*avg}},
+
+  {id:'TX-011',account:'ACCT-0188',amount:840000,currency:'INR',category:'Wire Transfer',channel:'Wire',region:'Domestic',ts:'May 22, 2025 · 10:00',score:10,status:'pending_review',isFPRisk:true,signals:[
+    {code:'ROUND_AMOUNT',label:'Exact round-number amount',sev:'low',pts:10,explain:"₹8,40,000 is an exact multiple of ₹84,000 and exceeds the ₹4,20,000 roundAmountMin threshold. The rule cannot distinguish between a round amount chosen deliberately and a commonly-used round figure for regular transfers."}
+  ],rollingAvg:688800,daysSince:5,activity24h:1,peerAvg:714000,
+  timeline:[{d:-5,amt:772800,desc:'Wire transfer',cat:'Wire'},{d:-12,amt:739200,desc:'Wire transfer',cat:'Wire'},{d:-19,amt:630000,desc:'Wire transfer',cat:'Wire'},{d:-26,amt:672000,desc:'Wire transfer',cat:'Wire'},{d:-33,amt:764400,desc:'Wire transfer',cat:'Wire'}],
+  note:"⚠ BORDERLINE FALSE-POSITIVE-RISK CASE\n\nA ₹8,40,000 domestic wire that triggers ROUND_AMOUNT.\n\nWhy it fired: The rule cannot distinguish between a round amount chosen deliberately and a commonly-used round figure for regular transfers.\n\nWhy it is probably fine: The timeline shows five prior wires in the ₹6,30,000–₹7,72,800 range at consistent weekly intervals. A ₹8,40,000 wire is within normal variance.\n\nThreshold tradeoff: Raising roundAmountMin from ₹4,20,000 to ₹10,08,000 would suppress this alert while still catching larger round-number anomalies.",
+  fpAnalysis:{whyFlagged:"ROUND_AMOUNT fired because ₹8,40,000 is an exact multiple of ₹84,000 and exceeds the ₹4,20,000 roundAmountMin threshold.",whyLegitimate:"Five prior wires in the ₹6,30,000–₹7,72,800 range show this account routinely sends wires of similar size. A ₹8,40,000 figure is consistent with this pattern.",primaryRule:'ROUND_AMOUNT',threshKey:'roundAmountMin',curVal:420000,suppressVal:1008000,min:84000,max:2100000,step:84000,tradeoff:"Raising roundAmountMin to ₹10,08,000 eliminates this alert. However, it also removes the ROUND_AMOUNT signal for all transactions between ₹4,20,000 and ₹10,07,999.",benefit:"Significantly reduces noise for accounts that routinely transact near common round figures in the ₹4,20,000–₹10,08,000 range, which are very common for regular wire-payment accounts.",live:(v,amt)=>amt>=v&&amt%84000===0}},
+
+  {id:'TX-012',account:'ACCT-0502',amount:7350,currency:'INR',category:'Retail Purchase',channel:'Mobile',region:'Domestic',ts:'May 21, 2025 · 14:22',score:0,status:'cleared',signals:[],rollingAvg:7980,daysSince:2,activity24h:1,peerAvg:10080,timeline:[{d:-2,amt:5210,desc:'Grocery store',cat:'Food'},{d:-4,amt:9240,desc:'Retail purchase',cat:'Retail'},{d:-7,amt:7980,desc:'Retail purchase',cat:'Retail'}]},
+  {id:'TX-013',account:'ACCT-0744',amount:273000,currency:'INR',category:'Payroll',channel:'Online',region:'Domestic',ts:'May 20, 2025 · 09:00',score:0,status:'cleared',signals:[],rollingAvg:273000,daysSince:14,activity24h:1,peerAvg:260400,timeline:[{d:-14,amt:273000,desc:'Payroll receipt',cat:'Payroll'},{d:-28,amt:273000,desc:'Payroll receipt',cat:'Payroll'},{d:-42,amt:273000,desc:'Payroll receipt',cat:'Payroll'}]},
+  {id:'TX-014',account:'ACCT-0615',amount:16800,currency:'INR',category:'ATM Withdrawal',channel:'ATM',region:'Domestic',ts:'May 19, 2025 · 12:35',score:0,status:'cleared',signals:[],rollingAvg:18480,daysSince:7,activity24h:1,peerAvg:21000,timeline:[{d:-7,amt:16800,desc:'ATM withdrawal',cat:'ATM'},{d:-14,amt:15120,desc:'ATM withdrawal',cat:'ATM'},{d:-21,amt:18480,desc:'ATM withdrawal',cat:'ATM'}]},
+  {id:'TX-015',account:'ACCT-0830',amount:96220,currency:'INR',category:'Loan Payment',channel:'Online',region:'Domestic',ts:'May 18, 2025 · 08:00',score:0,status:'cleared',signals:[],rollingAvg:96220,daysSince:30,activity24h:1,peerAvg:100800,timeline:[{d:-30,amt:96220,desc:'Loan payment',cat:'Loan'},{d:-60,amt:96220,desc:'Loan payment',cat:'Loan'},{d:-90,amt:96220,desc:'Loan payment',cat:'Loan'}]},
+  {id:'TX-016',account:'ACCT-0271',amount:11270,currency:'INR',category:'Utility Payment',channel:'Online',region:'Domestic',ts:'May 17, 2025 · 10:00',score:0,status:'cleared',signals:[],rollingAvg:11590,daysSince:30,activity24h:1,peerAvg:12600,timeline:[{d:-30,amt:12430,desc:'Utility bill',cat:'Utility'},{d:-60,amt:11090,desc:'Utility bill',cat:'Utility'},{d:-90,amt:11840,desc:'Utility bill',cat:'Utility'}]},
+
+  {id:'TX-017',account:'ACCT-0399',amount:201600,currency:'INR',category:'Travel',channel:'Online',region:'Domestic',ts:'May 16, 2025 · 11:20',score:8,status:'pending_review',signals:[
+    {code:'NEW_MERCHANT_CATEGORY',label:'New merchant category for this account',sev:'low',pts:8,explain:"This is the first recorded transaction in the 'Travel' category for this account. New spending categories occasionally indicate account misuse but more often reflect legitimate new purchases."}
+  ],rollingAvg:134400,daysSince:6,activity24h:1,peerAvg:151200,timeline:[{d:-6,amt:126000,desc:'Grocery',cat:'Food'},{d:-10,amt:75600,desc:'Retail',cat:'Retail'},{d:-17,amt:201600,desc:'Payroll',cat:'Payroll'}]},
+
+  {id:'TX-018',account:'ACCT-0492',amount:29470,currency:'INR',category:'Healthcare',channel:'Online',region:'Domestic',ts:'May 15, 2025 · 15:00',score:0,status:'cleared',signals:[],rollingAvg:31500,daysSince:14,activity24h:1,peerAvg:33600,timeline:[{d:-14,amt:26880,desc:'Healthcare copay',cat:'Healthcare'},{d:-28,amt:33600,desc:'Healthcare copay',cat:'Healthcare'}]},
+  {id:'TX-019',account:'ACCT-0657',amount:3580,currency:'INR',category:'Food & Beverage',channel:'Mobile',region:'Domestic',ts:'May 14, 2025 · 19:30',score:0,status:'cleared',signals:[],rollingAvg:4200,daysSince:1,activity24h:1,peerAvg:4620,timeline:[{d:-1,amt:3190,desc:'Restaurant',cat:'Food'},{d:-2,amt:5210,desc:'Restaurant',cat:'Food'},{d:-3,amt:3780,desc:'Coffee shop',cat:'Food'}]},
+  {id:'TX-020',account:'ACCT-0883',amount:158760,currency:'INR',category:'Insurance',channel:'Online',region:'Domestic',ts:'May 13, 2025 · 09:00',score:0,status:'cleared',signals:[],rollingAvg:159600,daysSince:180,activity24h:1,peerAvg:151200,timeline:[{d:-180,amt:155400,desc:'Insurance premium (6-month)',cat:'Insurance'},{d:-360,amt:161280,desc:'Insurance premium (6-month)',cat:'Insurance'}],
+  note:"🔍 ORDINARY ACTIVITY — NO ALERT CASE\n\nThis insurance premium has a 180-day gap since the last transaction, which exceeds the DORMANT_REACTIVATION threshold (90 days). It produces no alert because the timeline shows two prior identical semi-annual payments at −180 and −360 days — a recognisable periodic pattern.\n\nWhy no alert: A rule engine with category-awareness can recognise this predictable periodic pattern and suppress the dormancy signal.\n\nTradeoff: Category-aware suppression reduces false positives for annual accounts but adds rule complexity and could be circumvented by mislabelling a transaction."},
+
+  {id:'TX-021',account:'ACCT-0162',amount:268800,currency:'INR',category:'Retail Purchase',channel:'Branch',region:'Domestic',ts:'May 12, 2025 · 14:00',score:20,status:'pending_review',signals:[
+    {code:'DORMANT_REACTIVATION',label:'Previously inactive account',sev:'medium',pts:20,explain:"This account shows no recorded activity for 95 days before this transaction. A dormancy followed by activity is a pattern that sometimes warrants a closer look — but can also reflect a return from extended travel."}
+  ],rollingAvg:243600,daysSince:95,activity24h:1,peerAvg:235200,timeline:[{d:-95,amt:226800,desc:'Last activity: retail',cat:'Retail'},{d:-110,amt:159600,desc:'Utility bill',cat:'Utility'},{d:-125,amt:235200,desc:'Payroll receipt',cat:'Payroll'}],
+  note:"A branch retail transaction after 95 days of inactivity. Amount is close to normal for the account — only the dormancy fires. Often a benign life event such as a return from extended travel."},
+
+  {id:'TX-022',account:'ACCT-0340',amount:1050000,currency:'INR',category:'Wire Transfer',channel:'Wire',region:'South Asia',ts:'May 11, 2025 · 09:15',score:20,status:'pending_review',isFPRisk:true,signals:[
+    {code:'CROSS_BORDER_WIRE',label:'Cross-region wire transfer',sev:'medium',pts:20,explain:"A wire of ₹10,50,000 was directed to South Asia, outside domestic activity. International wires above ₹8,40,000 receive additional scrutiny. However, this account's timeline shows five identical prior monthly payments to the same region."}
+  ],rollingAvg:1024800,daysSince:30,activity24h:1,peerAvg:924000,timeline:[{d:-30,amt:1016400,desc:'Monthly payroll wire',cat:'Wire'},{d:-60,amt:1041600,desc:'Monthly payroll wire',cat:'Wire'},{d:-90,amt:1024800,desc:'Monthly payroll wire',cat:'Wire'},{d:-120,amt:999600,desc:'Monthly payroll wire',cat:'Wire'},{d:-150,amt:1075200,desc:'Monthly payroll wire',cat:'Wire'}],
+  note:"⚠ BORDERLINE FALSE-POSITIVE-RISK CASE\n\nA monthly cross-border payroll wire to South Asia. The amount (₹10,50,000) is within 3% of the rolling average (₹10,24,800) and the timeline shows five identical prior payments.\n\nWhy it fired: The CROSS_BORDER_WIRE rule fires on all wires above ₹8,40,000 to a non-domestic region, regardless of payment history.\n\nThreshold tradeoff: Raising crossBorderWireMinAmount from ₹8,40,000 to ₹12,60,000 would suppress this alert but would also miss a ₹10,92,000 first-ever international wire from an account with no prior context.",
+  fpAnalysis:{whyFlagged:"CROSS_BORDER_WIRE fired because ₹10,50,000 exceeds the ₹8,40,000 cross-border threshold and the counterparty is in a non-domestic region (South Asia).",whyLegitimate:"Five prior monthly wires to the same region in the ₹9,99,600–₹10,75,200 range confirm this is a routine payroll disbursement. The amount is within normal variance for this account.",primaryRule:'CROSS_BORDER_WIRE',threshKey:'crossBorderWireMinAmount',curVal:840000,suppressVal:1260000,min:420000,max:4200000,step:84000,tradeoff:"Raising the threshold to ₹12,60,000 would suppress alerts for routine ₹8.4L–₹12.6L international payroll wires. However, a first-ever ₹10,92,000 cross-border wire from an account with no international history would also be missed.",benefit:"Significantly reduces review load for businesses with established monthly cross-border payroll patterns, freeing reviewers for genuinely novel international transfers.",live:(v,amt)=>amt>=v}},
+
+  {id:'TX-023',account:'ACCT-0977',amount:26880,currency:'INR',category:'Retail Purchase',channel:'Online',region:'Domestic',ts:'May 10, 2025 · 04:12',score:8,status:'pending_review',signals:[
+    {code:'UNUSUAL_HOUR',label:'Transaction outside business hours',sev:'low',pts:8,explain:"This transaction was initiated at 04:00 local time, outside the standard business-hours window (06:00–22:00). Off-hours activity is a low-weight signal on its own; digital banking makes late-night transactions common."}
+  ],rollingAvg:29400,daysSince:3,activity24h:1,peerAvg:33600,timeline:[{d:-3,amt:23520,desc:'Online retail',cat:'Retail'},{d:-6,amt:35280,desc:'Online retail',cat:'Retail'},{d:-9,amt:15960,desc:'Food delivery',cat:'Food'}]},
+
+  {id:'TX-024',account:'ACCT-0455',amount:4200000,currency:'INR',category:'Real Estate',channel:'Wire',region:'Domestic',ts:'May 9, 2025 · 10:00',score:56,status:'needs_info',signals:[
+    {code:'AMOUNT_SPIKE',label:'Unusually large transaction amount',sev:'high',pts:30,explain:"₹42,00,000 is approximately 6× the account's rolling 30-day average of ₹6,72,000. An unexpected jump in transaction size can indicate changed circumstances — or may simply reflect a planned property deposit."},
+    {code:'ROUND_AMOUNT',label:'Exact round-number amount',sev:'low',pts:10,explain:"₹42,00,000 is an exact round figure. Round numbers are a minor pattern — most relevant when combined with other indicators."},
+    {code:'NEW_MERCHANT_CATEGORY',label:'New merchant category for this account',sev:'low',pts:8,explain:"This is the first recorded transaction in the 'Real Estate' category for this account. Likely a property deposit; additional documentation may confirm context."}
+  ],rollingAvg:672000,daysSince:8,activity24h:1,peerAvg:756000,timeline:[{d:-8,amt:655200,desc:'Investment contribution',cat:'Investment'},{d:-15,amt:688800,desc:'Investment contribution',cat:'Investment'},{d:-22,amt:756000,desc:'Investment contribution',cat:'Investment'},{d:-29,amt:630000,desc:'Investment contribution',cat:'Investment'},{d:-36,amt:705600,desc:'Investment contribution',cat:'Investment'}],
+  note:"A ₹42,00,000 domestic wire to a real-estate escrow account — the first real-estate transaction on this account. Likely a property deposit; additional documentation may confirm context."},
+
+  {id:'TX-025',account:'ACCT-0068',amount:2688000,currency:'INR',category:'Wire Transfer',channel:'Wire',region:'Caribbean',ts:'May 8, 2025 · 23:50',score:76,status:'pending_review',signals:[
+    {code:'AMOUNT_SPIKE',label:'Unusually large transaction amount',sev:'high',pts:30,explain:"₹26,88,000 is approximately 9× the account's rolling 30-day average of ₹2,94,000. An unexpected jump combined with cross-border destination is a compounding pattern."},
+    {code:'CROSS_BORDER_WIRE',label:'Cross-region wire transfer',sev:'medium',pts:20,explain:"A wire of ₹26,88,000 directed to a counterparty in the Caribbean, outside typical domestic activity. International wires above ₹8,40,000 receive additional scrutiny."},
+    {code:'ROUND_AMOUNT',label:'Exact round-number amount',sev:'low',pts:10,explain:"₹26,88,000 is an exact round figure. Round numbers are a minor pattern — most relevant when combined with other indicators."},
+    {code:'UNUSUAL_HOUR',label:'Transaction outside business hours',sev:'low',pts:8,explain:"This transaction was initiated at 23:00 local time, outside the standard business-hours window. In this case it compounds with three other signals."}
+  ],rollingAvg:294000,daysSince:4,activity24h:2,peerAvg:352800,timeline:[{d:-4,amt:268800,desc:'Retail purchase',cat:'Retail'},{d:-8,amt:319200,desc:'Payroll receipt',cat:'Payroll'},{d:-15,amt:243600,desc:'Utility bill',cat:'Utility'},{d:-22,amt:344400,desc:'Retail purchase',cat:'Retail'},{d:-30,amt:294000,desc:'Investment',cat:'Investment'}],
+  note:"Late-night cross-border wire of a round ₹26,88,000 — nine times the rolling average — to a Caribbean counterparty. Four signals compound. Could be a legitimate investment property payment; reviewer context is essential."}
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────────
+let state = {
+  transactions: TRANSACTIONS.map(t=>({...t,currentStatus:t.status})),
+  selectedId: null,
+  filterStatus: 'all',
+  sortBy: 'score',
+  reviews: {},     // id -> {outcome,nextStep,notes,reviewer,items,at}
+  auditLog: {},    // id -> [{kind,time,desc,actor,detail}]
+  tunerVals: {},   // id -> number
+  checklist: {},   // id -> [{id,q,hint,checked}]
+  discOpen: {},    // id -> bool
+  sigOpen: {},     // id->code -> bool
+  hintOpen: {},    // id->item -> bool
+  page: 'queue',
+};
+
+// Pre-seed audit for already-reviewed transactions
+TRANSACTIONS.forEach(t=>{
+  if(t.status!=='pending_review'){
+    const sc=t.signals.length;
+    state.auditLog[t.id]=[{kind:'alert_created',time:new Date().toISOString(),desc:`Alert created — ${sc} rule${sc!==1?'s':''} triggered on this transaction.`}];
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function fmt(n){return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:n%1===0?0:2}).format(n)}
+function scoreClass(s){return s>=70?'score-high':s>=40?'score-med':s>0?'score-low':'score-none'}
+function statusClass(s){return'st-'+s}
+function statusLabel(s){return{pending_review:'Pending Review',cleared:'Cleared',escalated:'Escalated',needs_info:'Needs Info'}[s]||s}
+function sevClass(s){return{high:'sev-high',medium:'sev-med',low:'sev-low'}[s]||'sev-low'}
+function sevLabel(s){return{high:'High weight',medium:'Medium weight',low:'Low weight'}[s]||s}
+function daysAgoLabel(d){const a=Math.abs(d);return a===0?'Today':a===1?'1 day ago':`${a} days ago`}
+function fmtThresh(key,v){
+  const cur=['crossBorderWireMinAmount','roundAmountMin','cashEquivalentMin'];
+  if(cur.includes(key))return fmt(v);
+  if(key.includes('Multiplier'))return v+'×';
+  return String(v);
+}
+function pendingCount(){return state.transactions.filter(t=>t.currentStatus==='pending_review').length}
+
+function getChecklist(id){
+  if(state.checklist[id])return state.checklist[id];
+  const tx=state.transactions.find(t=>t.id===id);
+  const items=[
+    {id:'data_history',q:"Is the account's activity history available and complete?",hint:"Check that the timeline shows prior entries. If the history is empty or very short, the pattern signals may have limited context."},
+    {id:'rule_match',q:"Does the displayed alert rule match the transaction shown?",hint:"Verify that the triggered rule code (e.g. AMOUNT_SPIKE) is consistent with the amounts and dates visible in the detail panel. This confirms the rule fired correctly on this record."},
+    {id:'legit_explain',q:"Is there a plausible, legitimate explanation visible in the data?",hint:"Review the scenario note, timeline, and peer-group chart. Common legitimate explanations include annual payments, payroll disbursements, property purchases, or travel bookings."},
+  ];
+  tx.signals.forEach(s=>{
+    const extra={
+      DORMANT_REACTIVATION:{id:'dormant_ctx',q:"Does the timeline show activity before the dormant period that provides context?",hint:"Look at the account's last known transactions. Regular prior activity followed by a gap is more consistent with a life event (travel, illness) than a newly acquired account."},
+      AMOUNT_SPIKE:{id:'spike_ctx',q:"Is the amount spike explainable by the transaction category or account history?",hint:"Compare the amount to the rolling 30-day average and peer-group average in the chart. A spike in categories such as 'Real Estate' or 'Investment' is common for one-off events."},
+      HIGH_VELOCITY:{id:'velocity_ctx',q:"Do the transactions in the 24-hour window suggest a pattern or a one-off event?",hint:"Check whether the recent-activity count is unusually high relative to the account's normal cadence."},
+      CROSS_BORDER_WIRE:{id:'cross_ctx',q:"Has the counterparty region appeared in this account's prior activity?",hint:"Scan the timeline for previous international transfers. Repeat activity to the same region is less unusual than a first-ever cross-border wire."},
+      ROUND_AMOUNT:{id:'round_ctx',q:"Are other transactions on this account also in round numbers?",hint:"Check the timeline. Accounts that regularly transact in round amounts make this signal less meaningful on its own."},
+      UNUSUAL_HOUR:{id:'hour_ctx',q:"Is off-hours activity consistent with the account's prior behaviour?",hint:"Digital banking makes late-night transactions common. This item is most relevant when combined with other high-weight signals."},
+      STRUCTURING_PATTERN:{id:'struct_ctx',q:"Is there a business or operational reason for multiple sub-threshold transactions?",hint:"Businesses processing multiple client payments or payroll batches can produce this pattern legitimately."},
+      NEW_MERCHANT_CATEGORY:{id:'newcat_ctx',q:"Does the account's history suggest any prior interest in this category?",hint:"A first-ever transaction in a new category is a weak signal. Consider whether the category is consistent with normal account-holder behaviour."},
+      LARGE_CASH_EQUIVALENT:{id:'cash_ctx',q:"Is the gift-card or prepaid instrument amount consistent with a legitimate use case?",hint:"Common legitimate uses include corporate gifting, employee rewards, or contest prizes."},
+      RAPID_FUND_MOVEMENT:{id:'rapid_ctx',q:"Is there an inbound transaction in the timeline that explains the rapid outflow?",hint:"Check the timeline for a corresponding receipt. Treasury operations, payroll funding, and property conveyancing can all produce rapid in-then-out movement legitimately."},
+    }[s.code];
+    if(extra&&!items.find(i=>i.id===extra.id))items.push(extra);
+  });
+  state.checklist[id]=items.map(i=>({...i,checked:false}));
+  return state.checklist[id];
+}
+
+function logEvent(id,kind,desc,actor,detail){
+  if(!state.auditLog[id])state.auditLog[id]=[];
+  const seq=Object.values(state.auditLog).flat().length+1;
+  state.auditLog[id].push({id:`EVT-${String(seq).padStart(4,'0')}`,kind,time:new Date().toISOString(),desc,actor,detail});
+}
+
+function formatEventTime(iso){
+  return new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date(iso));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────────────────────────────────────
+function navigate(page){
+  state.page=page;
+  document.getElementById('page-queue').classList.toggle('active',page==='queue');
+  document.getElementById('page-summary').classList.toggle('active',page==='summary');
+  document.getElementById('tab-queue').classList.toggle('active',page==='queue');
+  document.getElementById('tab-summary').classList.toggle('active',page==='summary');
+  if(page==='summary')renderSummary();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QUEUE
+// ─────────────────────────────────────────────────────────────────────────────
+function getVisible(){
+  return state.transactions
+    .filter(t=>state.filterStatus==='all'||t.currentStatus===state.filterStatus)
+    .sort((a,b)=>state.sortBy==='score'?b.score-a.score:0);
+}
+
+function renderQueue(){
+  const list=document.getElementById('queue-list');
+  const visible=getVisible();
+  const pc=pendingCount();
+  document.getElementById('pending-badge').textContent=pc;
+  document.getElementById('queue-pending-badge').textContent=pc;
+  if(visible.length===0){list.innerHTML=`<div class="queue-empty"><div class="qe-icon">✅</div><p>Queue is clear</p><small>No transactions match the current filter.</small></div>`;return;}
+  list.innerHTML=visible.map(t=>{
+    const sel=t.id===state.selectedId;
+    const fpBadge=t.isFPDemo?`<span class="fp-badge primary">★ False Positive</span>`:t.isFPRisk?`<span class="fp-badge border">⚠ Borderline</span>`:'';
+    const sigLabel=t.signals.length>0?`<div class="tx-signals-label">⚠ ${t.signals.length} signal${t.signals.length>1?'s':''} flagged</div>`:`<div class="tx-no-signals">No signals</div>`;
+    return`<div class="tx-card${sel?' selected':''}" onclick="selectTx('${t.id}')" tabindex="0" onkeydown="if(event.key==='Enter')selectTx('${t.id}')">
+      <div class="tx-card-top"><div class="tx-card-id-row"><span class="tx-card-id">${t.id}</span>${fpBadge}</div>${t.signals.length>0?`<span class="${scoreClass(t.score)} score-pill">${t.score}</span>`:''}</div>
+      <div class="tx-card-mid"><span class="tx-card-account">${t.account}</span><span class="tx-card-amount">${fmt(t.amount)}</span></div>
+      <div class="tx-card-meta">${t.category} · ${t.channel} · ${t.ts.split('·')[0].trim()}</div>
+      <div class="tx-card-bottom">${sigLabel}<span class="status-badge ${statusClass(t.currentStatus)}">${statusLabel(t.currentStatus)}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function applyFilter(f,btn){
+  state.filterStatus=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderQueue();
+}
+
+function applySort(s){state.sortBy=s;renderQueue();}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SELECT TRANSACTION
+// ─────────────────────────────────────────────────────────────────────────────
+function selectTx(id){
+  const wasSelected=state.selectedId===id;
+  state.selectedId=id;
+  // Audit
+  if(!state.auditLog[id]||state.auditLog[id].length===0){
+    const tx=state.transactions.find(t=>t.id===id);
+    const sc=tx.signals.length;
+    logEvent(id,'alert_created',`Alert created — ${sc} rule${sc!==1?'s':''} triggered on this transaction.`);
+    logEvent(id,'case_opened','Case opened for human review.');
+  } else if(!wasSelected){
+    logEvent(id,'case_opened','Case re-opened for review.');
+  }
+  renderQueue();
+  renderReviewPanel();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REVIEW PANEL
+// ─────────────────────────────────────────────────────────────────────────────
+function renderReviewPanel(){
+  const empty=document.getElementById('review-empty');
+  const content=document.getElementById('rp-content');
+  if(!state.selectedId){empty.style.display='flex';content.style.display='none';return;}
+  empty.style.display='none';content.style.display='flex';
+  const tx=state.transactions.find(t=>t.id===state.selectedId);
+  const checklist=getChecklist(tx.id);
+  const review=state.reviews[tx.id];
+  const auditEvents=state.auditLog[tx.id]||[];
+  const tunerVal=state.tunerVals[tx.id]??tx.fpAnalysis?.curVal;
+
+  let html=``;
+
+  // Header
+  const fpBanner=tx.isFPDemo?`<div class="fp-banner"><span>★</span><div><p class="fp-banner-title">False Positive Case</p><p class="fp-banner-body">This transaction was flagged by automated rules but is legitimate. It illustrates why human review is always necessary.</p></div></div>`:tx.isFPRisk?`<div class="fp-banner" style="background:#fefce8;border-color:#fde68a"><span>⚠</span><div><p class="fp-banner-title" style="color:#92400e">Borderline False-Positive-Risk Case</p><p class="fp-banner-body" style="color:#78350f">This transaction has characteristics that may represent a false positive. See the threshold tuner below.</p></div></div>`:'';
+  html+=`<header id="rp-header">${fpBanner}
+    <div class="rp-id-row"><span class="rp-id">${tx.id}</span><span class="status-badge ${statusClass(tx.currentStatus)}">${statusLabel(tx.currentStatus)}</span></div>
+    <div class="rp-amounts"><span class="rp-account">${tx.account}</span><span class="rp-amount">${fmt(tx.amount)}</span></div>
+    <div class="rp-meta"><span>${tx.category}</span><span>${tx.channel}</span><span>${tx.region}</span><span>${tx.ts}</span></div>
+  </header>`;
+
+  // Scenario note
+  if(tx.note){html+=`<div class="scenario-note"><span style="color:#1e4a8a;font-size:14px;flex-shrink:0;margin-top:1px">ℹ</span><div class="scenario-note-content"><p class="title">Context</p><p class="body">${tx.note}</p></div></div>`;}
+
+  // Risk indicator
+  if(tx.signals.length>0){
+    html+=`<div class="rp-section"><div class="section-title">Risk Indicator</div><div class="gauge-row">${renderGauge(tx.score)}<div class="stat-grid">
+      ${statRow('Signals fired',String(tx.signals.length))}
+      ${statRow('Rolling avg (30d)',fmt(tx.rollingAvg))}
+      ${statRow('Days since last activity',String(tx.daysSince))}
+      ${statRow('Activity in prior 24h',String(tx.activity24h))}
+    </div></div></div>`;
+  }
+
+  // Triggered rules
+  html+=`<div class="rp-section"><div class="section-title">Triggered Rules ${tx.signals.length>0?'('+tx.signals.length+')':''}</div>`;
+  if(tx.signals.length===0){html+=`<div class="no-signals">ℹ No automated signals were triggered for this transaction.</div>`;}
+  else{tx.signals.forEach(s=>{
+    const open=state.sigOpen[tx.id+'_'+s.code];
+    html+=`<div class="signal-item"><button class="signal-toggle" onclick="toggleSig('${tx.id}','${s.code}')">
+      <span class="sev-chip ${sevClass(s.sev)}">${sevLabel(s.sev)}</span>
+      <div class="signal-info"><div class="signal-label">${s.label}</div><div class="signal-code-pts"><span class="signal-code">${s.code}</span><span class="signal-pts">+${s.pts} pts</span></div></div>
+      <span class="signal-chevron${open?' open':''}">▾</span>
+    </button>${open?`<div class="signal-explain">${s.explain}</div>`:''}</div>`;
+  });}
+  html+=`</div>`;
+
+  // Peer group chart
+  html+=`<div class="rp-section"><div class="section-title">Amount vs. Peer Group</div><div class="peer-chart-desc">Comparison of this transaction's amount against the account's 30-day rolling average and the peer group average for this category.</div>${renderPeerChart(tx)}</div>`;
+
+  // Timeline
+  html+=`<div class="rp-section"><div class="section-title">Recent Account Activity</div>${renderTimeline(tx)}</div>`;
+
+  // Threshold tuner
+  if(tx.fpAnalysis){
+    const fp=tx.fpAnalysis;
+    const val=tunerVal??fp.curVal;
+    const fires=fp.live(val,tx.amount,tx.rollingAvg);
+    const isDefault=val===fp.curVal;
+    html+=`<div class="rp-section"><div class="section-title">${tx.isFPDemo?'★ False Positive Analysis & Threshold Tuner':'⚠ Borderline Case — Threshold Tradeoff Explorer'}</div>
+    <div style="margin-bottom:10px;display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:10px;border:1px solid #fde0cc;background:#fff">
+      <span style="color:#E8885A;font-size:14px;flex-shrink:0">⚠</span>
+      <p style="font-size:11px;color:#374151;line-height:1.5">${tx.isFPDemo?'This is a confirmed false-positive case — a legitimate transaction that was flagged. Use the tuner below to explore what threshold change would suppress it and what that tradeoff involves.':'This transaction has characteristics that may represent a false positive. Use the tuner to explore the sensitivity tradeoff for the primary rule that fired.'}</p>
+    </div>
+    <div class="tuner-notice"><span>🎚</span><div><p><strong>Interactive threshold explorer.</strong> Use the slider to understand the sensitivity tradeoffs of detection rules.</p></div></div>
+    <div class="why-grid">
+      <div class="why-card"><div class="why-title" style="color:#92400e">⚠ Why flagged</div><p>${fp.whyFlagged}</p></div>
+      <div class="why-card"><div class="why-title" style="color:#166534">✓ Why likely legitimate</div><p>${fp.whyLegitimate}</p></div>
+    </div>
+    <div class="slider-card">
+      <div class="slider-header">
+        <span class="slider-label">Adjust: <code>${fp.threshKey}</code> (${fp.primaryRule})</span>
+        <span class="slider-val ${isDefault?'slider-default':'slider-changed'}">${fmtThresh(fp.threshKey,val)}${isDefault?' (default)':''}</span>
+      </div>
+      <input type="range" min="${fp.min}" max="${fp.max}" step="${fp.step}" value="${val}" oninput="updateTuner('${tx.id}',this.value)"/>
+      <div class="slider-minmax"><span>${fmtThresh(fp.threshKey,fp.min)}</span><span class="slider-suppress">suppress at ${fmtThresh(fp.threshKey,fp.suppressVal)}</span><span>${fmtThresh(fp.threshKey,fp.max)}</span></div>
+    </div>
+    <div class="tuner-result ${fires?'fires':'suppressed'}">
+      <span>${fires?'⚠':'✓'}</span>
+      <span>${fires?`<strong>Alert would still fire</strong> at this threshold.${isDefault?' This is the current default setting.':' Move above '+fmtThresh(fp.threshKey,fp.suppressVal)+' to suppress.'}`:`<strong>Alert would be suppressed</strong> at this threshold. This transaction would no longer appear in the review queue for the primary rule.`}</span>
+    </div>
+    <div class="tradeoff-grid">
+      <div class="tradeoff-card"><div class="tc-title" style="color:#c25526">→ Tradeoff if raised to ${fmtThresh(fp.threshKey,fp.suppressVal)}</div><p>${fp.tradeoff}</p></div>
+      <div class="tradeoff-card"><div class="tc-title" style="color:#166534">✓ Benefit if raised</div><p>${fp.benefit}</p></div>
+    </div>
+    ${!isDefault?`<button class="reset-btn" onclick="resetTuner('${tx.id}')">Reset to default (${fmtThresh(fp.threshKey,fp.curVal)})</button>`:''}
+    <p class="tuner-footer">Threshold changes here are for illustration only. Scores are prioritization aids — not measures of misconduct.</p>
+    </div>`;
+  }
+
+  // Human review form
+  html+=`<div class="rp-section"><div class="section-title">Human Review</div>${renderReviewForm(tx,checklist,review)}</div>`;
+
+  // Account status
+  html+=`<div class="rp-section"><div class="section-title">Account Status View</div>${renderStatusPanel(tx)}</div>`;
+
+  // Audit trail
+  html+=`<div class="rp-section"><div class="section-title">Audit Trail (${auditEvents.length} event${auditEvents.length!==1?'s':''})</div>${renderAuditTrail(tx.id,auditEvents)}</div>`;
+
+  content.innerHTML=html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUB-RENDERERS
+// ─────────────────────────────────────────────────────────────────────────────
+function renderGauge(score){
+  const R=52,CX=64,CY=70,SWEEP=240,START=210;
+  function pt(deg){const r=((deg-90)*Math.PI)/180;return{x:CX+R*Math.cos(r),y:CY+R*Math.sin(r)}}
+  function arc(startDeg,sweepDeg){const e=startDeg+sweepDeg,s=pt(startDeg),en=pt(e),large=sweepDeg>180?1:0;return`M ${s.x} ${s.y} A ${R} ${R} 0 ${large} 1 ${en.x} ${en.y}`}
+  const color=score>=70?'#F5A623':score>=40?'#E8885A':score>0?'#1A7A8A':'#e5e7eb';
+  const trackPath=arc(START,SWEEP);
+  const fillLen=(2*Math.PI*R)*(SWEEP/360);
+  const target=(score/100)*fillLen;
+  const offset=fillLen-target;
+  const band=score>=70?'High priority':score>=40?'Medium priority':score>0?'Low priority':'No signals';
+  return`<div style="display:flex;flex-direction:column;align-items:center">
+    <svg viewBox="0 0 128 90" width="160" style="overflow:visible" role="img" aria-label="Risk indicator: ${score}/100">
+      <path d="${trackPath}" fill="none" stroke="#f3f4f6" stroke-width="10" stroke-linecap="round"/>
+      <path d="${trackPath}" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round"
+        stroke-dasharray="${fillLen}" stroke-dashoffset="${offset}" style="transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1)"/>
+      <text x="${CX}" y="${CY-4}" text-anchor="middle" dominant-baseline="middle" font-size="22" font-weight="700" font-family="monospace" fill="#0F3460">${score||'0'}</text>
+      <text x="${CX}" y="${CY+13}" text-anchor="middle" font-size="9" fill="#9ca3af" font-family="sans-serif">/ 100</text>
+      <text x="${CX}" y="${CY+24}" text-anchor="middle" font-size="8" font-weight="600" fill="${color}" font-family="sans-serif">${band}</text>
+    </svg>
+  </div>`;
+}
+
+function statRow(l,v){return`<div class="stat-row"><span class="stat-label">${l}</span><span class="stat-value">${v}</span></div>`}
+
+function renderPeerChart(tx){
+  const vals=[tx.amount,tx.rollingAvg,tx.peerAvg];
+  const max=Math.max(...vals)*1.15||1;
+  const colors=['#E8885A','#1A7A8A','#7d9dce'];
+  const names=['This Transaction','30-Day Average','Peer Group Avg'];
+  const bars=vals.map((v,i)=>{
+    const h=Math.round((v/max)*78);
+    return`<div class="bar-col"><div class="bar-wrap"><div class="bar" style="background:${colors[i]};height:${h}px"></div></div>
+      <div class="bar-val">${fmt(v)}</div>
+      <div class="bar-name">${names[i]}</div></div>`;
+  });
+  const legend=names.map((n,i)=>`<div class="legend-item"><span class="legend-dot" style="background:${colors[i]}"></span>${n}</div>`).join('');
+  return`<div class="bar-chart">${bars.join('')}</div><div class="bar-legend">${legend}</div>`;
+}
+
+function renderTimeline(tx){
+  if(!tx.timeline||tx.timeline.length===0)return`<p style="font-size:12px;color:#9ca3af">No prior activity recorded.</p>`;
+  const sorted=[...tx.timeline].sort((a,b)=>b.d-a.d);
+  return`<div class="timeline">${sorted.map(e=>`<div class="tl-item">
+    <div class="tl-dot">🕐</div>
+    <div><span class="tl-title">${e.desc}</span><span class="tl-amount">${fmt(e.amt)}</span></div>
+    <div class="tl-meta">${e.cat} · ${daysAgoLabel(e.d)}</div>
+  </div>`).join('')}</div>`;
+}
+
+function renderReviewForm(tx,checklist,review){
+  const disc=state.discOpen[tx.id];
+  const checkedCount=checklist.filter(i=>i.checked).length;
+  const allChecked=checkedCount===checklist.length;
+  const OUTCOMES=[
+    {v:'no_concern',icon:'✅',label:'No Concern',desc:'Patterns reviewed — no further action required at this time.'},
+    {v:'monitor',icon:'👁️',label:'Continue Monitoring',desc:'Continue routine monitoring; no immediate escalation needed.'},
+    {v:'escalate',icon:'🔼',label:'Escalate for Further Review',desc:'Refer to senior reviewer for additional assessment.'},
+    {v:'request_info',icon:'📋',label:'Request Additional Information',desc:'Additional documentation or context is needed before a determination.'},
+  ];
+  const NEXTSTEPS=[
+    {v:'close_no_action',icon:'✓',label:'Close — no further action',desc:'Patterns reviewed and explained. No further monitoring required at this time.'},
+    {v:'add_to_watchlist',icon:'👁',label:'Add account to watchlist',desc:'Flag the account for enhanced monitoring in future review cycles.'},
+    {v:'refer_to_senior',icon:'↑',label:'Refer to senior reviewer',desc:'Escalate to a senior reviewer who can apply additional context and judgement.'},
+    {v:'request_documentation',icon:'📄',label:'Request supporting documentation',desc:'Ask for transaction records, contracts, or correspondence that may explain the activity.'},
+    {v:'schedule_followup',icon:'📅',label:'Schedule follow-up review in 30 days',desc:'Revisit this account in 30 days to check whether the pattern continues.'},
+  ];
+  const SUGGEST={no_concern:'close_no_action',monitor:'add_to_watchlist',escalate:'refer_to_senior',request_info:'request_documentation'};
+
+  if(review){
+    const cDone=review.items.filter(i=>i.checked).length;
+    const cTotal=review.items.length;
+    return`<div class="review-submitted visible">
+      ${renderDisclaimer(tx.id)}
+      <div class="submitted-card">
+        <div class="submitted-header"><span>✓</span><div><p class="submitted-title">Review recorded</p><p class="submitted-by">By ${review.reviewer} · ${new Date(review.at).toLocaleString()}</p></div></div>
+        <div class="submitted-rows">
+          ${subRow('Decision',OUTCOMES.find(o=>o.v===review.outcome)?.label||review.outcome)}
+          ${subRow('Next step',NEXTSTEPS.find(n=>n.v===review.nextStep)?.label||review.nextStep)}
+          ${subRow('Checklist',`${cDone} of ${cTotal} items considered`)}
+          ${review.notes?`<div class="sub-note"><div class="sk">Internal note</div><div class="sv">"${review.notes}"</div></div>`:''}
+        </div>
+      </div>
+      <details style="margin-top:8px">
+        <summary style="font-size:11px;color:#6B7280;cursor:pointer;display:flex;align-items:center;gap:5px">📋 View completed checklist</summary>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">
+          ${review.items.map((it,i)=>`<div style="display:flex;gap:7px;padding:6px 10px;border-radius:7px;border:1px solid ${it.checked?'#c7eaed':'#e5e7eb'};background:${it.checked?'#eaf6f8':'#f9fafb'};font-size:11px;color:${it.checked?'#1A7A8A':'#9ca3af'}">
+            <span>${it.checked?'☑':'☐'}</span><span style="${it.checked?'':'opacity:.6'}"><span style="font-family:monospace;font-size:10px;margin-right:4px">${String(i+1).padStart(2,'0')}</span>${it.q}</span>
+          </div>`).join('')}
+        </div>
+      </details>
+      <button class="update-link" onclick="clearReview('${tx.id}')">Update this review</button>
+    </div>`;
+  }
+
+  const sel=state.selectedOutcome?.[tx.id]||'';
+  const ns=state.selectedNextStep?.[tx.id]||(sel?SUGGEST[sel]:'');
+  const notes=state.noteVal?.[tx.id]||'';
+  const reviewer=state.reviewerName?.[tx.id]||'';
+  const canSubmit=sel&&ns&&reviewer.trim();
+
+  return`${renderDisclaimer(tx.id)}
+  <div class="form-step">
+    <div class="form-step-header"><span class="step-num">1</span><span class="step-title">Evidence Checklist</span></div>
+    <div class="checklist-header"><p class="checklist-desc">Work through each item before recording your decision. Mark as considered — you do not need to answer "yes" to proceed.</p>
+      <span class="checklist-counter ${allChecked?'cc-done':'cc-progress'}">${checkedCount}/${checklist.length}</span>
+    </div>
+    <div id="cl-items-${tx.id}">
+      ${checklist.map((it,i)=>`<div class="checklist-item" id="cl-${tx.id}-${it.id}">
+        <div class="checklist-row">
+          <label class="checklist-cb"><input type="checkbox" ${it.checked?'checked':''} onchange="toggleChecklist('${tx.id}','${it.id}',this.checked)"/>
+            <span class="checklist-qtext${it.checked?' done':''}"><span class="checklist-qnum">${String(i+1).padStart(2,'0')}</span>${it.q}</span>
+          </label>
+          <button class="hint-btn${state.hintOpen[tx.id+'_'+it.id]?' open':''}" onclick="toggleHint('${tx.id}','${it.id}')" title="Show hint">ℹ</button>
+        </div>
+        ${state.hintOpen[tx.id+'_'+it.id]?`<div class="hint-text open">${it.hint}</div>`:''}
+      </div>`).join('')}
+    </div>
+    <div class="checklist-done-msg${allChecked?' visible':''}">All items considered. You can now record your review decision below.</div>
+  </div>
+
+  <div class="form-step">
+    <div class="form-step-header"><span class="step-num">2</span><span class="step-title">Review Outcome <span class="step-req">required</span></span></div>
+    ${OUTCOMES.map(o=>`<label class="outcome-option${sel===o.v?' selected':''}">
+      <input type="radio" name="outcome-${tx.id}" value="${o.v}" ${sel===o.v?'checked':''} onchange="setOutcome('${tx.id}','${o.v}')"/>
+      <span class="outcome-icon">${o.icon}</span><div><div class="outcome-label">${o.label}</div><div class="outcome-desc">${o.desc}</div></div>
+    </label>`).join('')}
+  </div>
+
+  <div class="form-step">
+    <div class="form-step-header"><span class="step-num">3</span><span class="step-title">Next Step <span class="step-req">required</span></span></div>
+    <p style="font-size:11px;color:#6B7280;margin-bottom:8px">Select the process action to take after recording this review. No real account is affected.</p>
+    ${NEXTSTEPS.map(n=>`<label class="nextstep-option${ns===n.v?' selected':''}">
+      <input type="radio" name="nextstep-${tx.id}" value="${n.v}" ${ns===n.v?'checked':''} onchange="setNextStep('${tx.id}','${n.v}')"/>
+      <span class="ns-icon">${n.icon}</span><div><div class="ns-label">${n.label}</div><div class="ns-desc">${n.desc}</div></div>
+    </label>`).join('')}
+  </div>
+
+  <div class="form-step">
+    <div class="form-step-header"><span class="step-num">4</span><span class="step-title">Internal Note</span></div>
+    <p style="font-size:11px;color:#6B7280;margin-bottom:6px">Record any context or rationale. Do not enter real personal data.</p>
+    <textarea class="form-textarea" rows="3" maxlength="500" placeholder="e.g. Activity history consistent with a prior annual payment. Peer-group chart confirms amount is within expected range…" oninput="setNote('${tx.id}',this.value)">${notes}</textarea>
+    <div style="display:flex;justify-content:space-between;margin-top:3px">
+      <span style="font-size:10px;color:#9ca3af">Internal use only</span>
+      <span class="char-count" id="nc-${tx.id}">${notes.length}/500</span>
+    </div>
+  </div>
+
+  <div class="form-step">
+    <div class="form-step-header"><span class="step-num">5</span><span class="step-title">Reviewer Name <span class="step-req">required</span></span></div>
+    <input class="form-input" type="text" maxlength="80" placeholder="Enter your name" value="${reviewer}" oninput="setReviewerName('${tx.id}',this.value)"/>
+  </div>
+
+  <button class="submit-btn" ${canSubmit?'':'disabled'} onclick="submitReview('${tx.id}')">Record Review</button>
+  <p class="submit-note">Recording this review logs your assessment for this case. No external account actions will be taken.</p>`;
+}
+
+function renderDisclaimer(txId){
+  const open=state.discOpen[txId];
+  return`<div class="disclaimer-card">
+    <button class="disclaimer-toggle" onclick="toggleDisc('${txId}')">
+      <span style="font-size:16px;flex-shrink:0">⚠</span>
+      <div style="flex:1;min-width:0">
+        <p class="disclaimer-title">Alerts are not determinations of illegal activity</p>
+        ${!open?`<p class="disclaimer-sub">Automated signals highlight patterns for human review only…</p>`:''}
+      </div>
+      <span class="disclaimer-chevron${open?' open':''}">▾</span>
+    </button>
+    ${open?`<div class="disclaimer-body open">
+      <p>The risk score and signals shown here are produced by automated pattern-matching rules. They indicate transaction patterns that may warrant closer review — nothing more.</p>
+      <p>A non-zero score, or even a high score, <strong>does not imply wrongdoing, illegal activity, or any fault on the part of any account holder.</strong></p>
+      <p>Reviewers must apply independent judgement and consider available context before drawing any conclusions. This system does not freeze accounts, block transfers, or contact any customer.</p>
+    </div>`:''}
+  </div>`;
+}
+
+function subRow(k,v){return`<div class="sub-row"><span class="sub-key">${k}</span><span class="sub-val">${v}</span></div>`}
+
+function renderStatusPanel(tx){
+  const configs={
+    pending_review:{icon:'🕐',heading:'Your recent transaction is being reviewed',body:`We occasionally carry out routine reviews of transactions as part of our standard account-maintenance process. This review does not indicate any problem with your account. Your ${tx.channel.toLowerCase()} transaction is included in the current review cycle.`,next:'No action is required from you at this time. We will update this status once the review is complete.',border:'#c7eaed',bg:'#eaf6f8'},
+    cleared:{icon:'✓',heading:'Review complete — no concerns identified',body:`Our review of your recent ${tx.channel.toLowerCase()} transaction has been completed. No concerns were identified. Your account continues to operate normally and no further action is needed in relation to this transaction.`,next:'You do not need to do anything. This transaction has been cleared and your account is unaffected.',border:'#bbf7d0',bg:'#f0fdf4'},
+    escalated:{icon:'🔼',heading:'Your account requires additional verification',body:`As part of our account-maintenance process, we need to carry out additional verification steps for your account. This is a standard due-diligence procedure and does not mean that your account has been suspended or that any wrongdoing is assumed.`,next:'A member of our team will be in touch through your registered contact method to guide you through the next steps.',border:'#fde0cc',bg:'#fdf2ee'},
+    needs_info:{icon:'?',heading:'We may need some additional information',body:`To complete our routine review of your recent ${tx.channel.toLowerCase()} transaction, we may ask you to provide some supporting information — for example, a copy of a relevant receipt or contract.`,next:'Please wait for a request through your registered contact method before submitting any documents.',border:'#d5e0f0',bg:'#eef2f9'},
+  };
+  const c=configs[tx.currentStatus]||configs.pending_review;
+  return`<div class="asp-notice"><span>👁</span><p><strong>Internal view only.</strong> This panel shows how a customer-facing status message would appear. No message is sent and no external service is contacted.</p></div>
+  <div class="asp-card" style="border-color:${c.border}">
+    <div class="asp-header" style="background:${c.bg};border-bottom:1px solid ${c.border}">
+      <span style="font-size:18px;flex-shrink:0">${c.icon}</span>
+      <div><p class="asp-header-title">${c.heading}</p><p class="asp-header-ref">${tx.account} · ${tx.ts.split('·')[0].trim()} · ${fmt(tx.amount)}</p></div>
+    </div>
+    <div class="asp-body">
+      <p>${c.body}</p>
+      <div class="asp-next"><strong>What happens next:</strong> ${c.next}</div>
+      <p class="asp-disclaimer">This notification does not constitute a determination that any transaction was improper or that the account holder has acted unlawfully. Reviews are a routine part of account maintenance.</p>
+    </div>
+  </div>`;
+}
+
+function renderAuditTrail(id,events){
+  const ICONS={alert_created:'🛡',case_opened:'📂',checklist_item_checked:'☑',checklist_item_unchecked:'☐',decision_recorded:'📋',status_changed:'🔄',next_step_set:'→',note_added:'📝'};
+  const KINDS={alert_created:'Alert created',case_opened:'Case opened',checklist_item_checked:'Item considered',checklist_item_unchecked:'Item unchecked',decision_recorded:'Decision recorded',status_changed:'Status changed',next_step_set:'Next step set',note_added:'Note added'};
+  return`<div class="audit-notice"><span>🛡</span><p><strong>Internal audit log.</strong> No customer data, passwords, or personal messages are recorded here. All actor names are reviewer-entered names.</p></div>
+  ${events.length===0?`<p class="audit-empty">No audit events yet — open this case to begin recording activity.</p>`:`<div class="audit-list">${events.map(e=>`<div class="audit-event">
+    <div class="ae-dot">${ICONS[e.kind]||'•'}</div>
+    <div class="ae-top"><span class="ae-kind">${KINDS[e.kind]||e.kind}</span><span class="ae-id">${e.id}</span><span class="ae-time">${formatEventTime(e.time)}</span></div>
+    <div class="ae-desc">${e.desc}</div>
+    ${e.detail?`<div class="ae-detail">"${e.detail}"</div>`:''}
+    ${e.actor?`<div class="ae-actor">Reviewer: <span>${e.actor}</span></div>`:''}
+  </div>`).join('')}</div>`}
+  <p class="audit-footer">Events are recorded in local browser memory and reset when the page is refreshed.</p>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUMMARY PAGE
+// ─────────────────────────────────────────────────────────────────────────────
+function renderSummary(){
+  const total=state.transactions.length;
+  const reviewed=state.transactions.filter(t=>t.currentStatus!=='pending_review').length;
+  const pct=Math.round((reviewed/total)*100);
+  const reviews=Object.values(state.reviews);
+
+  const statusCounts={pending_review:0,cleared:0,escalated:0,needs_info:0};
+  state.transactions.forEach(t=>statusCounts[t.currentStatus]=(statusCounts[t.currentStatus]||0)+1);
+  const STATUS_COLORS={pending_review:'#F5A623',cleared:'#3A9E76',escalated:'#E8885A',needs_info:'#1A7A8A'};
+  const STATUS_LABELS={pending_review:'Pending Review',cleared:'Cleared',escalated:'Escalated',needs_info:'Needs Info'};
+
+  const outcomeCounts={no_concern:0,monitor:0,escalate:0,request_info:0};
+  reviews.forEach(r=>outcomeCounts[r.outcome]=(outcomeCounts[r.outcome]||0)+1);
+  const OUTCOME_LABELS={no_concern:'No Concern',monitor:'Continue Monitoring',escalate:'Escalate',request_info:'Request Info'};
+
+  const signalFreq={};
+  state.transactions.forEach(t=>t.signals.forEach(s=>signalFreq[s.label]=(signalFreq[s.label]||0)+1));
+  const signalData=Object.entries(signalFreq).sort((a,b)=>b[1]-a[1]);
+  const maxSig=Math.max(...Object.values(signalFreq),1);
+  const maxOut=Math.max(...Object.values(outcomeCounts),1);
+
+  const flaggedCount=state.transactions.filter(t=>t.signals.length>0).length;
+  const fpCases=state.transactions.filter(t=>t.isFPDemo||t.isFPRisk);
+
+  // Donut
+  const donutSize=120,r=45,cx=60,cy=60;
+  let startAngle=-Math.PI/2;
+  const donutParts=Object.entries(statusCounts).filter(([,v])=>v>0).map(([k,v])=>{
+    const angle=(v/total)*2*Math.PI;
+    const x1=cx+r*Math.cos(startAngle),y1=cy+r*Math.sin(startAngle);
+    startAngle+=angle;
+    const x2=cx+r*Math.cos(startAngle),y2=cy+r*Math.sin(startAngle);
+    const large=angle>Math.PI?1:0;
+    return{k,v,path:`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`,color:STATUS_COLORS[k]};
+  });
+  const donutLegend=donutParts.map(p=>`<div class="dl-item"><span class="dl-dot" style="background:${p.color}"></span>${STATUS_LABELS[p.k]} (${p.v})</div>`).join('');
+  const donutSvg=`<svg viewBox="0 0 120 120" width="${donutSize}" height="${donutSize}">${donutParts.map(p=>`<path d="${p.path}" fill="${p.color}"/>`).join('')}<circle cx="${cx}" cy="${cy}" r="30" fill="#fff"/><text x="${cx}" y="${cy+1}" text-anchor="middle" dominant-baseline="middle" font-size="16" font-weight="700" fill="#0F3460">${pct}%</text></svg>`;
+
+  let html=`<div class="summary-title">Review Summary</div>
+
+  <div class="summary-card">
+    <div class="sc-title">Review Progress</div>
+    <div class="progress-nums"><div class="prog-main">${reviewed} <span>of ${total} reviewed</span></div><div class="prog-pct">${pct}%</div></div>
+    <div class="prog-bar-wrap"><div class="prog-bar" style="width:${pct}%"></div></div>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="sv">${total}</div><div class="sl">Total transactions</div></div>
+      <div class="stat-box"><div class="sv">${flaggedCount}</div><div class="sl">Flagged by rules</div></div>
+      <div class="stat-box"><div class="sv accent">${fpCases.length}</div><div class="sl">False positive risk</div></div>
+      <div class="stat-box"><div class="sv">${reviews.length}</div><div class="sl">Reviews recorded</div></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="summary-card">
+      <div class="sc-title">Queue Status Breakdown</div>
+      <div class="donut-wrap">${donutSvg}<div class="donut-legend">${donutLegend}</div></div>
+    </div>
+    <div class="summary-card">
+      <div class="sc-title">Review Outcomes Recorded</div>
+      ${reviews.length===0?`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:120px;text-align:center"><span style="font-size:28px;margin-bottom:8px">📋</span><p style="font-size:13px;color:#9ca3af">No reviews recorded yet.</p><p style="font-size:11px;color:#d1d5db;margin-top:4px">Submit a review from the queue to see outcomes here.</p></div>`:`<div class="outcome-bars">${Object.entries(outcomeCounts).filter(([,v])=>v>0).map(([k,v])=>`<div class="ob-row"><span class="ob-label">${OUTCOME_LABELS[k]}</span><div class="ob-bar-wrap"><div class="ob-bar" style="width:${Math.round((v/maxOut)*100)}%"></div></div><span class="ob-count">${v}</span></div>`).join('')}</div>`}
+    </div>
+  </div>
+
+  <div class="summary-card">
+    <div class="sc-title">Signal Frequency Across All Transactions</div>
+    <p style="font-size:11px;color:#6B7280;margin-bottom:10px">How many times each detection rule fired across all transactions.</p>
+    <div class="freq-bars">${signalData.map(([l,c])=>`<div class="freq-row"><span class="freq-label">${l}</span><div class="freq-bar-wrap"><div class="freq-bar" style="width:${Math.round((c/maxSig)*100)}%"></div></div><span class="freq-count">${c}</span></div>`).join('')}</div>
+  </div>
+
+  <div class="summary-card">
+    <div class="sc-title">False-Positive Risk Cases (${fpCases.length})</div>
+    <p style="font-size:11px;color:#6B7280;margin-bottom:14px">These transactions were flagged by at least one rule but have plausible legitimate explanations. They illustrate sensitivity tradeoffs — adjusting thresholds to suppress them may also reduce detection of genuine anomalies.</p>
+    ${fpCases.map(t=>{const fp=t.fpAnalysis;return`<div class="fp-case ${t.isFPDemo?'primary':'border-risk'}">
+      <div class="fp-case-top">
+        <div class="fp-case-ids">
+          <span style="font-family:monospace;font-size:11px;color:#6B7280">${t.id}</span>
+          <span style="font-family:monospace;font-size:11px;font-weight:700;color:#0F3460">${t.account}</span>
+          ${t.isFPDemo?`<span class="fp-badge primary">★ Primary FP</span>`:`<span class="fp-badge border">⚠ Borderline Risk</span>`}
+        </div>
+        <span class="fp-case-score">Score: ${t.score}</span>
+      </div>
+      ${fp?`<p style="font-size:11px;color:#374151;margin-bottom:6px"><strong>Why flagged:</strong> ${fp.whyFlagged}</p>
+      <p style="font-size:11px;color:#374151;margin-bottom:8px"><strong>Why likely legitimate:</strong> ${fp.whyLegitimate}</p>
+      <div class="fp-thresh-grid">
+        <div class="fp-thresh-card"><div class="fp-thresh-title">Threshold that fired</div><div class="fp-thresh-val">${fp.threshKey} = ${fp.curVal}</div><div class="fp-thresh-sub">Suppress at: ${fp.suppressVal}</div></div>
+        <div class="fp-thresh-card"><div class="fp-thresh-title">Tradeoff if raised</div><div class="fp-thresh-body">${fp.tradeoff}</div></div>
+      </div>`:`<p style="font-size:11px;color:#9ca3af;font-style:italic">See the scenario note in the transaction detail for the tradeoff explanation.</p>`}
+    </div>`}).join('')}
+    <p style="font-size:10px;color:#9ca3af;margin-top:12px;line-height:1.5;border-top:1px solid #f3f4f6;padding-top:10px">Adjusting thresholds changes the sensitivity of detection rules — it does not change the underlying nature of any transaction. Rules are prioritization aids only. Any real threshold change should be evaluated carefully against a broad population of test cases.</p>
+  </div>
+
+  <div class="summary-footer">Scores and signals are prioritization aids only — not determinations of wrongdoing.</div>`;
+
+  document.getElementById('summary-inner').innerHTML=html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INTERACTION HANDLERS
+// ─────────────────────────────────────────────────────────────────────────────
+function toggleSig(txId,code){
+  state.sigOpen[txId+'_'+code]=!state.sigOpen[txId+'_'+code];
+  renderReviewPanel();
+}
+function toggleDisc(txId){state.discOpen[txId]=!state.discOpen[txId];renderReviewPanel();}
+function toggleHint(txId,itemId){state.hintOpen[txId+'_'+itemId]=!state.hintOpen[txId+'_'+itemId];renderReviewPanel();}
+
+function toggleChecklist(txId,itemId,checked){
+  const items=getChecklist(txId);
+  const item=items.find(i=>i.id===itemId);
+  if(!item)return;
+  item.checked=checked;
+  const kind=checked?'checklist_item_checked':'checklist_item_unchecked';
+  logEvent(txId,kind,`Checklist item ${checked?'marked as considered':'unchecked'}.`,undefined,item.q);
+  renderReviewPanel();
+}
+
+function setOutcome(txId,val){
+  if(!state.selectedOutcome)state.selectedOutcome={};
+  state.selectedOutcome[txId]=val;
+  // auto-suggest next step
+  const SUGGEST={no_concern:'close_no_action',monitor:'add_to_watchlist',escalate:'refer_to_senior',request_info:'request_documentation'};
+  if(!state.selectedNextStep?.[txId]){
+    if(!state.selectedNextStep)state.selectedNextStep={};
+    state.selectedNextStep[txId]=SUGGEST[val]||'';
+  }
+  renderReviewPanel();
+}
+
+function setNextStep(txId,val){
+  if(!state.selectedNextStep)state.selectedNextStep={};
+  state.selectedNextStep[txId]=val;
+  renderReviewPanel();
+}
+
+function setNote(txId,val){
+  if(!state.noteVal)state.noteVal={};
+  state.noteVal[txId]=val;
+  const el=document.getElementById('nc-'+txId);
+  if(el)el.textContent=val.length+'/500';
+}
+
+function setReviewerName(txId,val){
+  if(!state.reviewerName)state.reviewerName={};
+  state.reviewerName[txId]=val;
+  // re-check submit button
+  const btn=document.querySelector('.submit-btn');
+  if(btn){
+    const sel=state.selectedOutcome?.[txId];
+    const ns=state.selectedNextStep?.[txId];
+    btn.disabled=!(sel&&ns&&val.trim());
+  }
+}
+
+function submitReview(txId){
+  const outcome=state.selectedOutcome?.[txId];
+  const nextStep=state.selectedNextStep?.[txId];
+  const notes=state.noteVal?.[txId]||'';
+  const reviewer=state.reviewerName?.[txId]||'';
+  if(!outcome||!nextStep||!reviewer.trim())return;
+
+  const STATUS_MAP={no_concern:'cleared',monitor:'pending_review',escalate:'escalated',request_info:'needs_info'};
+  const newStatus=STATUS_MAP[outcome];
+  const checklist=getChecklist(txId);
+
+  state.reviews[txId]={outcome,nextStep,notes,reviewer,items:[...checklist],at:new Date().toISOString()};
+  state.transactions=state.transactions.map(t=>t.id===txId?{...t,currentStatus:newStatus}:t);
+
+  const OUTCOME_LABELS={no_concern:'No Concern',monitor:'Continue Monitoring',escalate:'Escalate for Further Review',request_info:'Request Additional Information'};
+  const NS_LABELS={close_no_action:'Close — no further action',add_to_watchlist:'Add account to watchlist',refer_to_senior:'Refer to senior reviewer',request_documentation:'Request supporting documentation',schedule_followup:'Schedule follow-up review in 30 days'};
+  const STATUS_LABELS2={pending_review:'Pending Review',cleared:'Cleared',escalated:'Escalated',needs_info:'Needs Info'};
+
+  logEvent(txId,'decision_recorded',`Review decision recorded: "${OUTCOME_LABELS[outcome]}".`,reviewer);
+  logEvent(txId,'status_changed',`Case status changed to "${STATUS_LABELS2[newStatus]}".`,reviewer,STATUS_LABELS2[newStatus]);
+  logEvent(txId,'next_step_set',`Next step set: "${NS_LABELS[nextStep]}".`,reviewer,NS_LABELS[nextStep]);
+  if(notes.trim())logEvent(txId,'note_added','Internal note added to case.',reviewer);
+
+  renderQueue();
+  renderReviewPanel();
+  showToast(`Review recorded: "${OUTCOME_LABELS[outcome]}"`);
+}
+
+function clearReview(txId){
+  delete state.reviews[txId];
+  if(state.selectedOutcome)delete state.selectedOutcome[txId];
+  if(state.selectedNextStep)delete state.selectedNextStep[txId];
+  if(state.noteVal)delete state.noteVal[txId];
+  if(state.reviewerName)delete state.reviewerName[txId];
+  state.checklist[txId]=null;
+  renderReviewPanel();
+}
+
+function updateTuner(txId,val){
+  state.tunerVals[txId]=parseFloat(val);
+  renderReviewPanel();
+}
+
+function resetTuner(txId){
+  delete state.tunerVals[txId];
+  renderReviewPanel();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────────────────────────────────────
+let toastTimer=null;
+function showToast(msg){
+  clearTimeout(toastTimer);
+  document.getElementById('toast-msg').textContent=msg;
+  document.getElementById('toast').classList.add('show');
+  toastTimer=setTimeout(hideToast,3000);
+}
+function hideToast(){document.getElementById('toast').classList.remove('show');}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────────────────
+renderQueue();
+
+// Responsive brand sub-text
+function handleResize(){
+  const sub=document.getElementById('brand-sub-text');
+  if(sub)sub.style.display=window.innerWidth<640?'none':'inline';
+}
+window.addEventListener('resize',handleResize);
+handleResize();
+</script>
+</body>
+</html>
